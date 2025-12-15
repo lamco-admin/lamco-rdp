@@ -257,9 +257,10 @@ impl TransferEngine {
         }
 
         // Check if we have an active transfer
-        let progress = self.progress.as_mut().ok_or_else(|| {
-            ClipboardError::InvalidState("no active transfer".to_string())
-        })?;
+        let progress = self
+            .progress
+            .as_mut()
+            .ok_or_else(|| ClipboardError::InvalidState("no active transfer".to_string()))?;
 
         // Check if transfer is still active
         if !progress.state.is_active() {
@@ -292,9 +293,10 @@ impl TransferEngine {
 
     /// Finalize the receive and get the assembled data
     pub fn finalize_receive(&mut self) -> ClipboardResult<Vec<u8>> {
-        let progress = self.progress.as_ref().ok_or_else(|| {
-            ClipboardError::InvalidState("no active transfer".to_string())
-        })?;
+        let progress = self
+            .progress
+            .as_ref()
+            .ok_or_else(|| ClipboardError::InvalidState("no active transfer".to_string()))?;
 
         if progress.state != TransferState::Completed {
             return Err(ClipboardError::InvalidState(format!(
@@ -406,7 +408,9 @@ mod tests {
         let hash = engine.compute_hash(&original_data);
 
         // Start receive with hash
-        engine.start_receive(original_data.len() as u64, Some(hash.clone())).unwrap();
+        engine
+            .start_receive(original_data.len() as u64, Some(hash.clone()))
+            .unwrap();
         engine.receive_chunk(original_data.clone()).unwrap();
 
         // Should succeed with correct hash

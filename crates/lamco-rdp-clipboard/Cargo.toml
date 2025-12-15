@@ -8,8 +8,10 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 description = "IronRDP clipboard integration - CliprdrBackend implementation for RDP clipboard sync"
+documentation = "https://docs.rs/lamco-rdp-clipboard"
 keywords = ["rdp", "clipboard", "ironrdp", "cliprdr"]
 categories = ["network-programming", "encoding"]
+readme = "README.md"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -19,7 +21,15 @@ rustdoc-args = ["--cfg", "docsrs"]
 [badges]
 maintenance = { status = "actively-developed" }
 
+[features]
+default = []
+
+[lints]
+workspace = true
+
 [dependencies]
 lamco-clipboard-core = { workspace = true }
+ironrdp-cliprdr = { workspace = true }
+ironrdp-core = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

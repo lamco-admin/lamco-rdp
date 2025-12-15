@@ -40,10 +40,9 @@ image = { version = "0.25", default-features = false }
 # Encoding
 percent-encoding = "2"
 
-# IronRDP (use git until upstream release)
-ironrdp-cliprdr = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
-ironrdp-core = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
-ironrdp-server = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
+# IronRDP
+ironrdp-cliprdr = "0.4"
+ironrdp-core = "0.1"
 
 # =============================================================================
 # Meta-crate configuration (lamco-rdp)

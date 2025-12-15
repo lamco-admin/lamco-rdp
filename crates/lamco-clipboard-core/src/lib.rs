@@ -50,18 +50,14 @@ pub mod loop_detector;
 pub use error::{ClipboardError, ClipboardResult};
 pub use formats::{ClipboardFormat, FormatConverter};
 pub use loop_detector::{ClipboardSource, LoopDetectionConfig, LoopDetector};
-pub use sink::{
-    ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo,
-};
+pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};
 pub use transfer::{
-    TransferConfig, TransferEngine, TransferProgress, TransferState, DEFAULT_CHUNK_SIZE,
-    DEFAULT_MAX_SIZE, DEFAULT_TIMEOUT_MS,
+    TransferConfig, TransferEngine, TransferProgress, TransferState, DEFAULT_CHUNK_SIZE, DEFAULT_MAX_SIZE,
+    DEFAULT_TIMEOUT_MS,
 };
 
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::formats::{mime_to_rdp_formats, rdp_format_to_mime};
-    pub use crate::{
-        ClipboardChange, ClipboardError, ClipboardResult, ClipboardSink, FormatConverter, LoopDetector,
-    };
+    pub use crate::{ClipboardChange, ClipboardError, ClipboardResult, ClipboardSink, FormatConverter, LoopDetector};
 }

@@ -231,10 +231,7 @@ impl FormatConverter {
             });
         }
 
-        let mut result: Vec<u8> = text
-            .encode_utf16()
-            .flat_map(|c| c.to_le_bytes())
-            .collect();
+        let mut result: Vec<u8> = text.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
 
         // Add null terminator (2 bytes for UTF-16)
         result.extend_from_slice(&[0, 0]);
@@ -330,9 +327,7 @@ impl FormatConverter {
         let end_fragment = Self::parse_header_value(text, "EndFragment:")?;
 
         if start_fragment >= end_fragment || end_fragment > data.len() {
-            return Err(ClipboardError::FormatConversion(
-                "invalid CF_HTML offsets".to_string(),
-            ));
+            return Err(ClipboardError::FormatConversion("invalid CF_HTML offsets".to_string()));
         }
 
         let fragment = &text[start_fragment..end_fragment];
@@ -439,7 +434,10 @@ impl FormatConverter {
             // ANSI paths (rare)
             let mut pos = 0;
             while pos < file_data.len() {
-                let end = file_data[pos..].iter().position(|&b| b == 0).unwrap_or(file_data.len() - pos);
+                let end = file_data[pos..]
+                    .iter()
+                    .position(|&b| b == 0)
+                    .unwrap_or(file_data.len() - pos);
                 if end == 0 {
                     break;
                 }
