@@ -17,5 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Multi-monitor coordinate transformation with DPI scaling
   - Mouse event handling with sub-pixel precision
   - International keyboard layout support
-- `lamco-clipboard-core` placeholder for protocol-agnostic clipboard utilities
-- `lamco-rdp-clipboard` placeholder for IronRDP clipboard integration
+- `lamco-clipboard-core` crate: Protocol-agnostic clipboard utilities
+  - `ClipboardSink` trait with 7 async methods (RPITIT)
+  - `FormatConverter` for MIME ↔ Windows clipboard format conversion
+  - `LoopDetector` with SHA256-based history and time-windowed detection
+  - `TransferEngine` for chunked file transfers with integrity verification
+- `lamco-rdp-clipboard` crate: IronRDP clipboard integration
+  - `RdpCliprdrBackend` implementing IronRDP `CliprdrBackend` trait
+  - Non-blocking event-based design for async processing
+  - `RdpCliprdrFactory` for multiple RDP connections
+  - `ClipboardEvent` enum for all CLIPRDR operations

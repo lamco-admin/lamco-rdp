@@ -6,7 +6,7 @@
 //!
 //! - [`lamco_rdp_input`] - RDP input event translation (keyboard scancodes, mouse coordinates)
 //! - [`lamco_clipboard_core`] - Protocol-agnostic clipboard utilities (format conversion, loop detection)
-//! - `lamco_rdp_clipboard` - IronRDP clipboard integration (coming soon)
+//! - [`lamco_rdp_clipboard`] - IronRDP clipboard integration
 //!
 //! ## Feature Flags
 //!

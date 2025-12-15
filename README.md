@@ -16,8 +16,8 @@ The crates integrate seamlessly with the [IronRDP](https://github.com/Devolution
 | Crate | Version | Description |
 |-------|---------|-------------|
 | [lamco-rdp-input](crates/lamco-rdp-input) | [![Crates.io](https://img.shields.io/crates/v/lamco-rdp-input.svg)](https://crates.io/crates/lamco-rdp-input) | Input event translation (keyboard, mouse, coordinates) |
-| [lamco-clipboard-core](crates/lamco-clipboard-core) | In Development | Protocol-agnostic clipboard utilities |
-| [lamco-rdp-clipboard](crates/lamco-rdp-clipboard) | In Development | IronRDP clipboard integration |
+| [lamco-clipboard-core](crates/lamco-clipboard-core) | [![Crates.io](https://img.shields.io/crates/v/lamco-clipboard-core.svg)](https://crates.io/crates/lamco-clipboard-core) | Protocol-agnostic clipboard utilities |
+| [lamco-rdp-clipboard](crates/lamco-rdp-clipboard) | [![Crates.io](https://img.shields.io/crates/v/lamco-rdp-clipboard.svg)](https://crates.io/crates/lamco-rdp-clipboard) | IronRDP clipboard integration |
 
 ## Quick Start
 
@@ -51,12 +51,13 @@ lamco-rdp-input = "0.1"
 - Mouse event handling with sub-pixel precision
 - International keyboard layout support
 
-### Clipboard (Coming Soon)
+### Clipboard (`lamco-clipboard-core`, `lamco-rdp-clipboard`)
 
 - Protocol-agnostic `ClipboardSink` trait
 - Format conversion (MIME ↔ Windows clipboard formats)
 - Loop detection for bidirectional sync
 - File transfer support (MS-RDPECLIP FileContents)
+- IronRDP `CliprdrBackend` implementation
 
 ## About Lamco
 
