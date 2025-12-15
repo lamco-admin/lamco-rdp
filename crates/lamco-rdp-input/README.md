@@ -1,10 +1,17 @@
 # lamco-rdp-input
 
-RDP input event translation for Rust - keyboard scancodes to evdev keycodes, mouse event handling, and multi-monitor coordinate transformation.
-
 [![Crates.io](https://img.shields.io/crates/v/lamco-rdp-input.svg)](https://crates.io/crates/lamco-rdp-input)
 [![Documentation](https://docs.rs/lamco-rdp-input/badge.svg)](https://docs.rs/lamco-rdp-input)
+[![CI](https://github.com/lamco-admin/lamco-rdp/actions/workflows/ci.yml/badge.svg)](https://github.com/lamco-admin/lamco-rdp/actions)
 [![License](https://img.shields.io/crates/l/lamco-rdp-input.svg)](LICENSE-MIT)
+
+RDP input event translation for Rust - keyboard scancodes to evdev keycodes, mouse event handling, and multi-monitor coordinate transformation.
+
+## Overview
+
+This crate provides complete input event translation for RDP server implementations. It handles the conversion from RDP protocol input events to Linux evdev keycodes, enabling seamless integration with Wayland compositors and other Linux input systems.
+
+The translation layer supports standard keyboards, extended multimedia keys, international layouts, and complex multi-monitor configurations with per-monitor DPI scaling.
 
 ## Features
 
@@ -62,6 +69,37 @@ let event = RdpInputEvent::KeyboardScancode {
 let linux_event = translator.translate_event(event)?;
 ```
 
+## Installation
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+lamco-rdp-input = "0.1"
+```
+
+## Documentation
+
+See [docs.rs/lamco-rdp-input](https://docs.rs/lamco-rdp-input) for full API documentation.
+
+## About Lamco
+
+This crate is part of the Lamco RDP project. Lamco develops RDP server solutions for Wayland/Linux.
+
+**Open source foundation:** Protocol components, input translation, clipboard utilities
+**Commercial products:** Lamco RDP Portal Server, Lamco VDI
+
+Learn more: [lamco.ai](https://lamco.ai)
+
 ## License
 
-Licensed under either of Apache License, Version 2.0 or MIT license at your option.
+Licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any additional terms or conditions.

@@ -103,16 +103,9 @@ impl KeyboardHandler {
     }
 
     /// Process key down event from RDP
-    pub fn handle_key_down(
-        &mut self,
-        scancode: u16,
-        extended: bool,
-        e1_prefix: bool,
-    ) -> Result<KeyboardEvent> {
+    pub fn handle_key_down(&mut self, scancode: u16, extended: bool, e1_prefix: bool) -> Result<KeyboardEvent> {
         // Translate scancode to keycode
-        let keycode = self
-            .mapper
-            .translate_scancode(scancode as u32, extended, e1_prefix)?;
+        let keycode = self.mapper.translate_scancode(scancode as u32, extended, e1_prefix)?;
 
         let timestamp = Instant::now();
 
@@ -166,16 +159,9 @@ impl KeyboardHandler {
     }
 
     /// Process key up event from RDP
-    pub fn handle_key_up(
-        &mut self,
-        scancode: u16,
-        extended: bool,
-        e1_prefix: bool,
-    ) -> Result<KeyboardEvent> {
+    pub fn handle_key_up(&mut self, scancode: u16, extended: bool, e1_prefix: bool) -> Result<KeyboardEvent> {
         // Translate scancode to keycode
-        let keycode = self
-            .mapper
-            .translate_scancode(scancode as u32, extended, e1_prefix)?;
+        let keycode = self.mapper.translate_scancode(scancode as u32, extended, e1_prefix)?;
 
         let timestamp = Instant::now();
 
@@ -201,6 +187,7 @@ impl KeyboardHandler {
 
     /// Update modifier states based on key event
     fn update_modifiers(&mut self, keycode: u32, pressed: bool) {
+        #[allow(clippy::wildcard_imports)]
         use crate::mapper::keycodes::*;
 
         match keycode {
@@ -209,32 +196,28 @@ impl KeyboardHandler {
                     self.modifiers.shift = true;
                 } else {
                     // Only clear if neither shift is pressed
-                    self.modifiers.shift =
-                        self.is_key_pressed(KEY_LEFTSHIFT) || self.is_key_pressed(KEY_RIGHTSHIFT);
+                    self.modifiers.shift = self.is_key_pressed(KEY_LEFTSHIFT) || self.is_key_pressed(KEY_RIGHTSHIFT);
                 }
             }
             KEY_LEFTCTRL | KEY_RIGHTCTRL => {
                 if pressed {
                     self.modifiers.ctrl = true;
                 } else {
-                    self.modifiers.ctrl =
-                        self.is_key_pressed(KEY_LEFTCTRL) || self.is_key_pressed(KEY_RIGHTCTRL);
+                    self.modifiers.ctrl = self.is_key_pressed(KEY_LEFTCTRL) || self.is_key_pressed(KEY_RIGHTCTRL);
                 }
             }
             KEY_LEFTALT | KEY_RIGHTALT => {
                 if pressed {
                     self.modifiers.alt = true;
                 } else {
-                    self.modifiers.alt =
-                        self.is_key_pressed(KEY_LEFTALT) || self.is_key_pressed(KEY_RIGHTALT);
+                    self.modifiers.alt = self.is_key_pressed(KEY_LEFTALT) || self.is_key_pressed(KEY_RIGHTALT);
                 }
             }
             KEY_LEFTMETA | KEY_RIGHTMETA => {
                 if pressed {
                     self.modifiers.meta = true;
                 } else {
-                    self.modifiers.meta =
-                        self.is_key_pressed(KEY_LEFTMETA) || self.is_key_pressed(KEY_RIGHTMETA);
+                    self.modifiers.meta = self.is_key_pressed(KEY_LEFTMETA) || self.is_key_pressed(KEY_RIGHTMETA);
                 }
             }
             KEY_CAPSLOCK => {

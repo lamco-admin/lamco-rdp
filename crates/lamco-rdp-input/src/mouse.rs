@@ -327,9 +327,7 @@ mod tests {
         let mut handler = MouseHandler::new();
         let mut transformer = create_test_transformer();
 
-        let event = handler
-            .handle_absolute_move(960, 540, &mut transformer)
-            .unwrap();
+        let event = handler.handle_absolute_move(960, 540, &mut transformer).unwrap();
 
         match event {
             MouseEvent::Move { x, y, .. } => {
@@ -349,9 +347,7 @@ mod tests {
         let mut handler = MouseHandler::new();
         let mut transformer = create_test_transformer();
 
-        let event = handler
-            .handle_relative_move(10, 10, &mut transformer)
-            .unwrap();
+        let event = handler.handle_relative_move(10, 10, &mut transformer).unwrap();
 
         match event {
             MouseEvent::Move { .. } => {}
@@ -431,26 +427,11 @@ mod tests {
 
     #[test]
     fn test_mouse_button_from_rdp() {
-        assert_eq!(
-            MouseButton::from_rdp_button(0x1000),
-            Some(MouseButton::Left)
-        );
-        assert_eq!(
-            MouseButton::from_rdp_button(0x2000),
-            Some(MouseButton::Right)
-        );
-        assert_eq!(
-            MouseButton::from_rdp_button(0x4000),
-            Some(MouseButton::Middle)
-        );
-        assert_eq!(
-            MouseButton::from_rdp_button(0x0080),
-            Some(MouseButton::Extra1)
-        );
-        assert_eq!(
-            MouseButton::from_rdp_button(0x0100),
-            Some(MouseButton::Extra2)
-        );
+        assert_eq!(MouseButton::from_rdp_button(0x1000), Some(MouseButton::Left));
+        assert_eq!(MouseButton::from_rdp_button(0x2000), Some(MouseButton::Right));
+        assert_eq!(MouseButton::from_rdp_button(0x4000), Some(MouseButton::Middle));
+        assert_eq!(MouseButton::from_rdp_button(0x0080), Some(MouseButton::Extra1));
+        assert_eq!(MouseButton::from_rdp_button(0x0100), Some(MouseButton::Extra2));
         assert_eq!(MouseButton::from_rdp_button(0x9999), None);
     }
 

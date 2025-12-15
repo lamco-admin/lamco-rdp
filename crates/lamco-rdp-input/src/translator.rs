@@ -179,13 +179,9 @@ impl InputTranslator {
                 self.translate_mouse_move_relative(delta_x, delta_y)
             }
 
-            RdpInputEvent::MouseButton { button, pressed } => {
-                self.translate_mouse_button(button, pressed)
-            }
+            RdpInputEvent::MouseButton { button, pressed } => self.translate_mouse_button(button, pressed),
 
-            RdpInputEvent::MouseWheel { delta_x, delta_y } => {
-                self.translate_mouse_wheel(delta_x, delta_y)
-            }
+            RdpInputEvent::MouseWheel { delta_x, delta_y } => self.translate_mouse_wheel(delta_x, delta_y),
         }
     }
 
@@ -198,8 +194,7 @@ impl InputTranslator {
         pressed: bool,
     ) -> Result<LinuxInputEvent> {
         let kbd_event = if pressed {
-            self.keyboard
-                .handle_key_down(scancode, extended, e1_prefix)?
+            self.keyboard.handle_key_down(scancode, extended, e1_prefix)?
         } else {
             self.keyboard.handle_key_up(scancode, extended, e1_prefix)?
         };
@@ -248,46 +243,28 @@ impl InputTranslator {
 
     /// Translate mouse move event (absolute)
     fn translate_mouse_move(&mut self, x: u32, y: u32) -> Result<LinuxInputEvent> {
-        let mouse_event = self
-            .mouse
-            .handle_absolute_move(x, y, &mut self.coord_transformer)?;
+        let mouse_event = self.mouse.handle_absolute_move(x, y, &mut self.coord_transformer)?;
 
         match mouse_event {
-            MouseEvent::Move { x, y, timestamp } => {
-                Ok(LinuxInputEvent::MouseMove { x, y, timestamp })
-            }
-            _ => Err(InputError::InvalidState(
-                "Unexpected mouse event type".to_string(),
-            )),
+            MouseEvent::Move { x, y, timestamp } => Ok(LinuxInputEvent::MouseMove { x, y, timestamp }),
+            _ => Err(InputError::InvalidState("Unexpected mouse event type".to_string())),
         }
     }
 
     /// Translate mouse move event (relative)
-    fn translate_mouse_move_relative(
-        &mut self,
-        delta_x: i32,
-        delta_y: i32,
-    ) -> Result<LinuxInputEvent> {
-        let mouse_event =
-            self.mouse
-                .handle_relative_move(delta_x, delta_y, &mut self.coord_transformer)?;
+    fn translate_mouse_move_relative(&mut self, delta_x: i32, delta_y: i32) -> Result<LinuxInputEvent> {
+        let mouse_event = self
+            .mouse
+            .handle_relative_move(delta_x, delta_y, &mut self.coord_transformer)?;
 
         match mouse_event {
-            MouseEvent::Move { x, y, timestamp } => {
-                Ok(LinuxInputEvent::MouseMove { x, y, timestamp })
-            }
-            _ => Err(InputError::InvalidState(
-                "Unexpected mouse event type".to_string(),
-            )),
+            MouseEvent::Move { x, y, timestamp } => Ok(LinuxInputEvent::MouseMove { x, y, timestamp }),
+            _ => Err(InputError::InvalidState("Unexpected mouse event type".to_string())),
         }
     }
 
     /// Translate mouse button event
-    fn translate_mouse_button(
-        &mut self,
-        button_flags: u16,
-        pressed: bool,
-    ) -> Result<LinuxInputEvent> {
+    fn translate_mouse_button(&mut self, button_flags: u16, pressed: bool) -> Result<LinuxInputEvent> {
         let button = MouseButton::from_rdp_button(button_flags).ok_or_else(|| {
             warn!("Unknown RDP mouse button: 0x{:04X}", button_flags);
             InputError::Unknown(format!("Unknown mouse button: 0x{:04X}", button_flags))
@@ -314,9 +291,7 @@ impl InputTranslator {
                 timestamp,
             }),
 
-            _ => Err(InputError::InvalidState(
-                "Unexpected mouse event type".to_string(),
-            )),
+            _ => Err(InputError::InvalidState("Unexpected mouse event type".to_string())),
         }
     }
 
@@ -334,9 +309,7 @@ impl InputTranslator {
                 delta_y,
                 timestamp,
             }),
-            _ => Err(InputError::InvalidState(
-                "Unexpected mouse event type".to_string(),
-            )),
+            _ => Err(InputError::InvalidState("Unexpected mouse event type".to_string())),
         }
     }
 
@@ -443,9 +416,7 @@ mod tests {
 
         match result {
             LinuxInputEvent::Keyboard {
-                event_type,
-                keycode,
-                ..
+                event_type, keycode, ..
             } => {
                 assert_eq!(event_type, KeyboardEventType::KeyDown);
                 assert!(keycode > 0);
@@ -574,10 +545,7 @@ mod tests {
 
         for i in 0..10 {
             translator
-                .translate_event(RdpInputEvent::MouseMove {
-                    x: i * 100,
-                    y: i * 100,
-                })
+                .translate_event(RdpInputEvent::MouseMove { x: i * 100, y: i * 100 })
                 .unwrap();
         }
 

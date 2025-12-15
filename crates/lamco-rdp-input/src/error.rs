@@ -123,26 +123,22 @@ pub enum ErrorType {
 /// Classify error for recovery strategy selection
 pub fn classify_error(error: &InputError) -> ErrorType {
     match error {
-        InputError::PortalError(_)
-        | InputError::PortalSessionError(_)
-        | InputError::DBusError(_) => ErrorType::Portal,
+        InputError::PortalError(_) | InputError::PortalSessionError(_) | InputError::DBusError(_) => ErrorType::Portal,
 
-        InputError::ScancodeTranslationFailed(_)
-        | InputError::UnknownScancode(_)
-        | InputError::UnknownKeycode(_) => ErrorType::Translation,
+        InputError::ScancodeTranslationFailed(_) | InputError::UnknownScancode(_) | InputError::UnknownKeycode(_) => {
+            ErrorType::Translation
+        }
 
         InputError::CoordinateTransformError(_)
         | InputError::MonitorNotFound(_)
         | InputError::InvalidCoordinate(_, _)
         | InputError::InvalidMonitorConfig(_) => ErrorType::Coordinate,
 
-        InputError::LayoutError(_) | InputError::LayoutNotFound(_) | InputError::XkbError(_) => {
-            ErrorType::Layout
-        }
+        InputError::LayoutError(_) | InputError::LayoutNotFound(_) | InputError::XkbError(_) => ErrorType::Layout,
 
-        InputError::EventQueueFull
-        | InputError::EventSendFailed
-        | InputError::EventReceiveFailed => ErrorType::EventQueue,
+        InputError::EventQueueFull | InputError::EventSendFailed | InputError::EventReceiveFailed => {
+            ErrorType::EventQueue
+        }
 
         InputError::LatencyTooHigh(_, _) => ErrorType::Performance,
 

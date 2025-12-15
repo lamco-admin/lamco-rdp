@@ -178,6 +178,7 @@ pub mod keycodes {
     pub const KEY_PRINT: u32 = 210;
 }
 
+#[allow(clippy::wildcard_imports)]
 use keycodes::*;
 
 /// Scancode mapper handles RDP scancode to evdev keycode translation
@@ -437,12 +438,7 @@ impl ScancodeMapper {
     }
 
     /// Translate RDP scancode to Linux evdev keycode
-    pub fn translate_scancode(
-        &self,
-        scancode: u32,
-        extended: bool,
-        e1_prefix: bool,
-    ) -> Result<u32> {
+    pub fn translate_scancode(&self, scancode: u32, extended: bool, e1_prefix: bool) -> Result<u32> {
         if e1_prefix {
             // Handle E1 prefix scancodes
             self.e1_map
@@ -528,34 +524,16 @@ mod tests {
         let mapper = ScancodeMapper::new();
 
         // Test letter keys
-        assert_eq!(
-            mapper.translate_scancode(0x1E, false, false).unwrap(),
-            KEY_A
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x2C, false, false).unwrap(),
-            KEY_Z
-        );
+        assert_eq!(mapper.translate_scancode(0x1E, false, false).unwrap(), KEY_A);
+        assert_eq!(mapper.translate_scancode(0x2C, false, false).unwrap(), KEY_Z);
 
         // Test number keys
-        assert_eq!(
-            mapper.translate_scancode(0x02, false, false).unwrap(),
-            KEY_1
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x0B, false, false).unwrap(),
-            KEY_0
-        );
+        assert_eq!(mapper.translate_scancode(0x02, false, false).unwrap(), KEY_1);
+        assert_eq!(mapper.translate_scancode(0x0B, false, false).unwrap(), KEY_0);
 
         // Test function keys
-        assert_eq!(
-            mapper.translate_scancode(0x3B, false, false).unwrap(),
-            KEY_F1
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x58, false, false).unwrap(),
-            KEY_F12
-        );
+        assert_eq!(mapper.translate_scancode(0x3B, false, false).unwrap(), KEY_F1);
+        assert_eq!(mapper.translate_scancode(0x58, false, false).unwrap(), KEY_F12);
     }
 
     #[test]
@@ -563,40 +541,16 @@ mod tests {
         let mapper = ScancodeMapper::new();
 
         // Test navigation keys
-        assert_eq!(
-            mapper.translate_scancode(0x47, true, false).unwrap(),
-            KEY_HOME
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x4F, true, false).unwrap(),
-            KEY_END
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x48, true, false).unwrap(),
-            KEY_UP
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x50, true, false).unwrap(),
-            KEY_DOWN
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x4B, true, false).unwrap(),
-            KEY_LEFT
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x4D, true, false).unwrap(),
-            KEY_RIGHT
-        );
+        assert_eq!(mapper.translate_scancode(0x47, true, false).unwrap(), KEY_HOME);
+        assert_eq!(mapper.translate_scancode(0x4F, true, false).unwrap(), KEY_END);
+        assert_eq!(mapper.translate_scancode(0x48, true, false).unwrap(), KEY_UP);
+        assert_eq!(mapper.translate_scancode(0x50, true, false).unwrap(), KEY_DOWN);
+        assert_eq!(mapper.translate_scancode(0x4B, true, false).unwrap(), KEY_LEFT);
+        assert_eq!(mapper.translate_scancode(0x4D, true, false).unwrap(), KEY_RIGHT);
 
         // Test media keys
-        assert_eq!(
-            mapper.translate_scancode(0x22, true, false).unwrap(),
-            KEY_PLAYPAUSE
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x24, true, false).unwrap(),
-            KEY_STOPCD
-        );
+        assert_eq!(mapper.translate_scancode(0x22, true, false).unwrap(), KEY_PLAYPAUSE);
+        assert_eq!(mapper.translate_scancode(0x24, true, false).unwrap(), KEY_STOPCD);
     }
 
     #[test]
@@ -608,9 +562,7 @@ mod tests {
 
         for keycode in test_keys {
             let scancode = mapper.translate_keycode(keycode).unwrap();
-            let translated = mapper
-                .translate_scancode(scancode as u32, false, false)
-                .unwrap();
+            let translated = mapper.translate_scancode(scancode as u32, false, false).unwrap();
             assert_eq!(translated, keycode);
         }
     }
@@ -620,24 +572,15 @@ mod tests {
         let mut mapper = ScancodeMapper::new();
 
         // US layout: Y key
-        assert_eq!(
-            mapper.translate_scancode(0x15, false, false).unwrap(),
-            KEY_Y
-        );
+        assert_eq!(mapper.translate_scancode(0x15, false, false).unwrap(), KEY_Y);
 
         // German layout: Y → Z
         mapper.set_layout("de");
-        assert_eq!(
-            mapper.translate_scancode(0x15, false, false).unwrap(),
-            KEY_Z
-        );
+        assert_eq!(mapper.translate_scancode(0x15, false, false).unwrap(), KEY_Z);
 
         // French layout
         mapper.set_layout("fr");
-        assert_eq!(
-            mapper.translate_scancode(0x10, false, false).unwrap(),
-            KEY_A
-        );
+        assert_eq!(mapper.translate_scancode(0x10, false, false).unwrap(), KEY_A);
     }
 
     #[test]
@@ -696,32 +639,17 @@ mod tests {
     fn test_function_keys_f13_to_f24() {
         let mapper = ScancodeMapper::new();
 
-        assert_eq!(
-            mapper.translate_scancode(0x5A, false, false).unwrap(),
-            KEY_F13
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x65, false, false).unwrap(),
-            KEY_F24
-        );
+        assert_eq!(mapper.translate_scancode(0x5A, false, false).unwrap(), KEY_F13);
+        assert_eq!(mapper.translate_scancode(0x65, false, false).unwrap(), KEY_F24);
     }
 
     #[test]
     fn test_multimedia_keys() {
         let mapper = ScancodeMapper::new();
 
-        assert_eq!(
-            mapper.translate_scancode(0x20, true, false).unwrap(),
-            KEY_MUTE
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x2E, true, false).unwrap(),
-            KEY_VOLUMEDOWN
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x30, true, false).unwrap(),
-            KEY_VOLUMEUP
-        );
+        assert_eq!(mapper.translate_scancode(0x20, true, false).unwrap(), KEY_MUTE);
+        assert_eq!(mapper.translate_scancode(0x2E, true, false).unwrap(), KEY_VOLUMEDOWN);
+        assert_eq!(mapper.translate_scancode(0x30, true, false).unwrap(), KEY_VOLUMEUP);
     }
 
     #[test]
@@ -732,27 +660,15 @@ mod tests {
             mapper.translate_scancode(0x70, false, false).unwrap(),
             KEY_KATAKANAHIRAGANA
         );
-        assert_eq!(
-            mapper.translate_scancode(0x71, false, false).unwrap(),
-            KEY_MUHENKAN
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x72, false, false).unwrap(),
-            KEY_HENKAN
-        );
+        assert_eq!(mapper.translate_scancode(0x71, false, false).unwrap(), KEY_MUHENKAN);
+        assert_eq!(mapper.translate_scancode(0x72, false, false).unwrap(), KEY_HENKAN);
     }
 
     #[test]
     fn test_korean_keys() {
         let mapper = ScancodeMapper::new();
 
-        assert_eq!(
-            mapper.translate_scancode(0x75, false, false).unwrap(),
-            KEY_HANGEUL
-        );
-        assert_eq!(
-            mapper.translate_scancode(0x76, false, false).unwrap(),
-            KEY_HANJA
-        );
+        assert_eq!(mapper.translate_scancode(0x75, false, false).unwrap(), KEY_HANGEUL);
+        assert_eq!(mapper.translate_scancode(0x76, false, false).unwrap(), KEY_HANJA);
     }
 }

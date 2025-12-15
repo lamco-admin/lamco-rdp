@@ -87,3 +87,48 @@ lamco-rdp-clipboard = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+
+# =============================================================================
+# Workspace Lints (inherited by all crates via `[lints] workspace = true`)
+# Based on IronRDP's comprehensive lint configuration
+# =============================================================================
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+invalid_reference_casting = "warn"
+unused_unsafe = "warn"
+elided_lifetimes_in_paths = "warn"
+single_use_lifetimes = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Unsafe code
+undocumented_unsafe_blocks = "warn"
+multiple_unsafe_ops_per_block = "warn"
+missing_safety_doc = "warn"
+
+# Style and readability
+wildcard_imports = "warn"
+
+# Performance
+large_futures = "warn"
+rc_buffer = "warn"
+
+# Relaxed lints - numeric conversions are common in coordinate/graphics code
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+as_conversions = "allow"
+cast_lossless = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+similar_names = "allow"
+
+# Test code often uses unwrap/panic
+unwrap_used = "allow"
+panic = "allow"
+
+[lints]
+workspace = true

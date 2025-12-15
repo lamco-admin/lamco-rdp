@@ -56,10 +56,7 @@ impl MonitorInfo {
         let end_x = self.stream_x + self.stream_width;
         let end_y = self.stream_y + self.stream_height;
 
-        x >= self.stream_x as f64
-            && x < end_x as f64
-            && y >= self.stream_y as f64
-            && y < end_y as f64
+        x >= self.stream_x as f64 && x < end_x as f64 && y >= self.stream_y as f64 && y < end_y as f64
     }
 }
 
@@ -115,9 +112,7 @@ impl CoordinateTransformer {
     /// Create a new coordinate transformer
     pub fn new(monitors: Vec<MonitorInfo>) -> Result<Self> {
         if monitors.is_empty() {
-            return Err(InputError::InvalidMonitorConfig(
-                "No monitors configured".to_string(),
-            ));
+            return Err(InputError::InvalidMonitorConfig("No monitors configured".to_string()));
         }
 
         let coord_system = Self::calculate_coordinate_system(&monitors);
@@ -158,10 +153,7 @@ impl CoordinateTransformer {
         let stream_height = monitors.iter().map(|m| m.stream_height).max().unwrap_or(0);
 
         // Get primary monitor for RDP dimensions and DPI
-        let primary = monitors
-            .iter()
-            .find(|m| m.is_primary)
-            .unwrap_or(&monitors[0]);
+        let primary = monitors.iter().find(|m| m.is_primary).unwrap_or(&monitors[0]);
 
         CoordinateSystem {
             rdp_width: primary.width,
@@ -189,10 +181,8 @@ impl CoordinateTransformer {
         let scaled_y = norm_y * dpi_scale;
 
         // Step 3: Map to virtual desktop space
-        let virtual_x = scaled_x * self.coord_system.virtual_width as f64
-            + self.coord_system.virtual_x_offset as f64;
-        let virtual_y = scaled_y * self.coord_system.virtual_height as f64
-            + self.coord_system.virtual_y_offset as f64;
+        let virtual_x = scaled_x * self.coord_system.virtual_width as f64 + self.coord_system.virtual_x_offset as f64;
+        let virtual_y = scaled_y * self.coord_system.virtual_height as f64 + self.coord_system.virtual_y_offset as f64;
 
         // Step 4: Find target monitor
         let monitor = self.find_monitor_at_point(virtual_x, virtual_y)?;
@@ -256,10 +246,8 @@ impl CoordinateTransformer {
         let virtual_y = monitor.y as f64 + local_y;
 
         // Step 5: Normalize from virtual desktop
-        let norm_x = (virtual_x - self.coord_system.virtual_x_offset as f64)
-            / self.coord_system.virtual_width as f64;
-        let norm_y = (virtual_y - self.coord_system.virtual_y_offset as f64)
-            / self.coord_system.virtual_height as f64;
+        let norm_x = (virtual_x - self.coord_system.virtual_x_offset as f64) / self.coord_system.virtual_width as f64;
+        let norm_y = (virtual_y - self.coord_system.virtual_y_offset as f64) / self.coord_system.virtual_height as f64;
 
         // Step 6: Reverse DPI scaling
         let dpi_scale = self.coord_system.rdp_dpi / self.coord_system.system_dpi;
@@ -366,9 +354,7 @@ impl CoordinateTransformer {
     /// Update monitor configuration
     pub fn update_monitors(&mut self, monitors: Vec<MonitorInfo>) -> Result<()> {
         if monitors.is_empty() {
-            return Err(InputError::InvalidMonitorConfig(
-                "No monitors configured".to_string(),
-            ));
+            return Err(InputError::InvalidMonitorConfig("No monitors configured".to_string()));
         }
 
         self.coord_system = Self::calculate_coordinate_system(&monitors);
@@ -376,10 +362,7 @@ impl CoordinateTransformer {
         self.sub_pixel_x = 0.0;
         self.sub_pixel_y = 0.0;
 
-        debug!(
-            "Updated monitor configuration: {} monitors",
-            self.monitors.len()
-        );
+        debug!("Updated monitor configuration: {} monitors", self.monitors.len());
         Ok(())
     }
 

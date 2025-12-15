@@ -6,7 +6,7 @@
 //!
 //! - [`lamco_rdp_input`] - RDP input event translation (keyboard scancodes, mouse coordinates)
 //! - [`lamco_clipboard_core`] - Protocol-agnostic clipboard utilities (format conversion, loop detection)
-//! - [`lamco_rdp_clipboard`] - IronRDP clipboard integration
+//! - `lamco_rdp_clipboard` - IronRDP clipboard integration (coming soon)
 //!
 //! ## Feature Flags
 //!
@@ -43,9 +43,7 @@ pub use lamco_rdp_clipboard as clipboard_rdp;
 /// Prelude module for convenient imports
 pub mod prelude {
     #[cfg(feature = "input")]
-    pub use lamco_rdp_input::{
-        InputTranslator, KeyModifiers, LinuxInputEvent, MouseButton, RdpInputEvent,
-    };
+    pub use lamco_rdp_input::{InputTranslator, KeyModifiers, LinuxInputEvent, MouseButton, RdpInputEvent};
 
     #[cfg(feature = "clipboard-core")]
     pub use lamco_clipboard_core::{ClipboardSink, FormatConverter, LoopDetector};

@@ -8,6 +8,7 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 description = "RDP input event translation - keyboard scancodes to evdev keycodes, mouse handling, multi-monitor coordinates"
+documentation = "https://docs.rs/lamco-rdp-input"
 keywords = ["rdp", "input", "keyboard", "scancode", "evdev"]
 categories = ["network-programming", "encoding", "os::linux-apis"]
 readme = "README.md"
@@ -26,5 +27,8 @@ default = []
 [dependencies]
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true
 
 [dev-dependencies]
