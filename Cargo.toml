@@ -1,0 +1,89 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/lamco-rdp-input",
+    "crates/lamco-clipboard-core",
+    "crates/lamco-rdp-clipboard",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/lamco-admin/lamco-rdp"
+homepage = "https://lamco.ai"
+authors = ["Lamco <contact@lamco.ai>"]
+
+[workspace.dependencies]
+# Internal crates
+lamco-rdp-input = { version = "0.1", path = "crates/lamco-rdp-input" }
+lamco-clipboard-core = { version = "0.1", path = "crates/lamco-clipboard-core" }
+lamco-rdp-clipboard = { version = "0.1", path = "crates/lamco-rdp-clipboard" }
+
+# Core dependencies
+thiserror = "2"
+tracing = "0.1"
+
+# Async
+tokio = { version = "1", default-features = false }
+
+# Serialization
+bytes = "1"
+
+# Cryptography
+sha2 = "0.10"
+
+# Image processing
+image = { version = "0.25", default-features = false }
+
+# Encoding
+percent-encoding = "2"
+
+# IronRDP (use git until upstream release)
+ironrdp-cliprdr = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
+ironrdp-core = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
+ironrdp-server = { git = "https://github.com/glamberson/IronRDP", branch = "server-clipboard" }
+
+# =============================================================================
+# Meta-crate configuration (lamco-rdp)
+# =============================================================================
+
+[package]
+name = "lamco-rdp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "RDP protocol implementations and IronRDP extensions for Rust"
+keywords = ["rdp", "remote-desktop", "input", "clipboard", "ironrdp"]
+categories = ["network-programming", "encoding", "os"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-linux-gnu"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[features]
+default = ["input", "clipboard-core"]
+full = ["input", "clipboard-core", "clipboard-rdp"]
+
+# Individual crate features
+input = ["dep:lamco-rdp-input"]
+clipboard-core = ["dep:lamco-clipboard-core"]
+clipboard-rdp = ["clipboard-core", "dep:lamco-rdp-clipboard"]
+
+[dependencies]
+lamco-rdp-input = { workspace = true, optional = true }
+lamco-clipboard-core = { workspace = true, optional = true }
+lamco-rdp-clipboard = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

@@ -1,0 +1,30 @@
+[package]
+name = "lamco-rdp-input"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "RDP input event translation - keyboard scancodes to evdev keycodes, mouse handling, multi-monitor coordinates"
+keywords = ["rdp", "input", "keyboard", "scancode", "evdev"]
+categories = ["network-programming", "encoding", "os::linux-apis"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-linux-gnu"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[features]
+default = []
+
+[dependencies]
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]

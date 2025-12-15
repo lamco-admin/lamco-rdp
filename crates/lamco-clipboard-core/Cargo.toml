@@ -1,0 +1,24 @@
+[package]
+name = "lamco-clipboard-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Protocol-agnostic clipboard utilities - format conversion, loop detection, transfer engine"
+keywords = ["clipboard", "format", "conversion", "rdp"]
+categories = ["encoding", "data-structures"]
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-linux-gnu"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+thiserror = { workspace = true }
+tracing = { workspace = true }
