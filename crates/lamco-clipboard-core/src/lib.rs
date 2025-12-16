@@ -47,6 +47,9 @@ mod transfer;
 pub mod formats;
 pub mod loop_detector;
 
+#[cfg(feature = "image")]
+pub mod image;
+
 pub use error::{ClipboardError, ClipboardResult};
 pub use formats::{ClipboardFormat, FormatConverter};
 pub use loop_detector::{ClipboardSource, LoopDetectionConfig, LoopDetector};

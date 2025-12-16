@@ -40,9 +40,10 @@ image = { version = "0.25", default-features = false }
 # Encoding
 percent-encoding = "2"
 
-# IronRDP
-ironrdp-cliprdr = "0.4"
-ironrdp-core = "0.1"
+# IronRDP (using git until new crate version is published)
+# TODO: Switch back to crates.io version when ironrdp-cliprdr 0.5+ is published
+ironrdp-cliprdr = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", branch = "master" }
 
 # =============================================================================
 # Meta-crate configuration (lamco-rdp)

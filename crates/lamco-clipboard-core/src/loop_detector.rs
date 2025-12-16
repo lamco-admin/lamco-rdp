@@ -19,6 +19,13 @@ pub struct LoopDetectionConfig {
 
     /// Enable content hashing for deduplication
     pub enable_content_hashing: bool,
+
+    /// Optional rate limit in milliseconds (default: None)
+    ///
+    /// When set, sync operations are throttled to at most one per `rate_limit_ms`.
+    /// This provides belt-and-suspenders protection against rapid clipboard updates
+    /// even when loop detection passes.
+    pub rate_limit_ms: Option<u64>,
 }
 
 impl Default for LoopDetectionConfig {
@@ -27,6 +34,26 @@ impl Default for LoopDetectionConfig {
             window_ms: 500,
             max_history: 10,
             enable_content_hashing: true,
+            rate_limit_ms: None,
+        }
+    }
+}
+
+impl LoopDetectionConfig {
+    /// Create config with rate limiting enabled
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use lamco_clipboard_core::LoopDetectionConfig;
+    ///
+    /// let config = LoopDetectionConfig::with_rate_limit(200);
+    /// assert_eq!(config.rate_limit_ms, Some(200));
+    /// ```
+    pub fn with_rate_limit(rate_limit_ms: u64) -> Self {
+        Self {
+            rate_limit_ms: Some(rate_limit_ms),
+            ..Default::default()
         }
     }
 }
@@ -79,6 +106,7 @@ struct ClipboardOperation {
 /// 2. **Content hashing**: Hashes actual clipboard content (optional)
 /// 3. **Time windowing**: Only detects loops within a configurable time window
 /// 4. **Source tracking**: Distinguishes RDP vs local operations
+/// 5. **Rate limiting**: Optional throttle to prevent rapid sync storms
 ///
 /// # Example
 ///
@@ -107,6 +135,10 @@ pub struct LoopDetector {
 
     /// Recent content hashes
     content_history: VecDeque<ClipboardOperation>,
+
+    /// Last sync time for rate limiting (per source)
+    last_sync_rdp: Option<Instant>,
+    last_sync_local: Option<Instant>,
 }
 
 impl Default for LoopDetector {
@@ -127,6 +159,8 @@ impl LoopDetector {
             config,
             format_history: VecDeque::new(),
             content_history: VecDeque::new(),
+            last_sync_rdp: None,
+            last_sync_local: None,
         }
     }
 
@@ -204,6 +238,99 @@ impl LoopDetector {
     pub fn clear(&mut self) {
         self.format_history.clear();
         self.content_history.clear();
+        self.last_sync_rdp = None;
+        self.last_sync_local = None;
+    }
+
+    /// Check if sync is rate limited for the given source
+    ///
+    /// Returns true if a sync was performed too recently and should be skipped.
+    /// This is only active when `rate_limit_ms` is configured.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use lamco_clipboard_core::{LoopDetector, LoopDetectionConfig};
+    /// use lamco_clipboard_core::loop_detector::ClipboardSource;
+    ///
+    /// let config = LoopDetectionConfig::with_rate_limit(200);
+    /// let mut detector = LoopDetector::with_config(config);
+    ///
+    /// // First sync is not rate limited
+    /// assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+    ///
+    /// // Record that we synced
+    /// detector.record_sync(ClipboardSource::Rdp);
+    ///
+    /// // Immediate second sync would be rate limited
+    /// assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+    /// ```
+    pub fn is_rate_limited(&self, source: ClipboardSource) -> bool {
+        let Some(rate_limit_ms) = self.config.rate_limit_ms else {
+            return false;
+        };
+
+        let last_sync = match source {
+            ClipboardSource::Rdp => self.last_sync_rdp,
+            ClipboardSource::Local => self.last_sync_local,
+        };
+
+        let Some(last) = last_sync else {
+            return false;
+        };
+
+        let elapsed = last.elapsed();
+        elapsed < Duration::from_millis(rate_limit_ms)
+    }
+
+    /// Record that a sync operation was performed
+    ///
+    /// Call this after successfully syncing clipboard data to update
+    /// the rate limiting timestamp.
+    pub fn record_sync(&mut self, source: ClipboardSource) {
+        let now = Instant::now();
+        match source {
+            ClipboardSource::Rdp => self.last_sync_rdp = Some(now),
+            ClipboardSource::Local => self.last_sync_local = Some(now),
+        }
+    }
+
+    /// Combined check: would cause loop OR is rate limited
+    ///
+    /// Convenience method that checks both conditions. Returns true if
+    /// the sync should be skipped for any reason.
+    pub fn should_skip_sync(&self, formats: &[ClipboardFormat], source: ClipboardSource) -> bool {
+        if self.is_rate_limited(source) {
+            tracing::debug!("Sync skipped: rate limited for {:?}", source);
+            return true;
+        }
+
+        let would_loop = match source {
+            ClipboardSource::Rdp => self.would_cause_loop(formats),
+            ClipboardSource::Local => self.would_cause_loop(formats),
+        };
+
+        if would_loop {
+            tracing::debug!("Sync skipped: would cause loop");
+        }
+
+        would_loop
+    }
+
+    /// Combined check for MIME types: would cause loop OR is rate limited
+    pub fn should_skip_sync_mime(&self, mime_types: &[String], source: ClipboardSource) -> bool {
+        if self.is_rate_limited(source) {
+            tracing::debug!("Sync skipped: rate limited for {:?}", source);
+            return true;
+        }
+
+        let would_loop = self.would_cause_loop_mime(mime_types);
+
+        if would_loop {
+            tracing::debug!("Sync skipped: would cause loop");
+        }
+
+        would_loop
     }
 
     // =========================================================================
@@ -377,5 +504,67 @@ mod tests {
 
         assert_eq!(hash1, hash2);
         assert_ne!(hash1, hash3);
+    }
+
+    #[test]
+    fn test_rate_limit_disabled_by_default() {
+        let detector = LoopDetector::new();
+
+        // Without rate limiting, should never be rate limited
+        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+        assert!(!detector.is_rate_limited(ClipboardSource::Local));
+    }
+
+    #[test]
+    fn test_rate_limit_config() {
+        let config = LoopDetectionConfig::with_rate_limit(200);
+        assert_eq!(config.rate_limit_ms, Some(200));
+
+        let mut detector = LoopDetector::with_config(config);
+
+        // First check - not rate limited
+        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+
+        // Record sync
+        detector.record_sync(ClipboardSource::Rdp);
+
+        // Immediately after - should be rate limited
+        assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+
+        // But Local should not be affected
+        assert!(!detector.is_rate_limited(ClipboardSource::Local));
+    }
+
+    #[test]
+    fn test_rate_limit_clear() {
+        let config = LoopDetectionConfig::with_rate_limit(200);
+        let mut detector = LoopDetector::with_config(config);
+
+        detector.record_sync(ClipboardSource::Rdp);
+        assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+
+        detector.clear();
+        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+    }
+
+    #[test]
+    fn test_should_skip_sync_combined() {
+        let config = LoopDetectionConfig::with_rate_limit(200);
+        let mut detector = LoopDetector::with_config(config);
+
+        let formats = vec![ClipboardFormat::unicode_text()];
+
+        // Initially: not rate limited, no loop
+        assert!(!detector.should_skip_sync(&formats, ClipboardSource::Rdp));
+
+        // Record from RDP
+        detector.record_formats(&formats, ClipboardSource::Rdp);
+        detector.record_sync(ClipboardSource::Rdp);
+
+        // Now should skip for Local (loop detection)
+        assert!(detector.should_skip_sync(&formats, ClipboardSource::Local));
+
+        // And skip for RDP (rate limiting)
+        assert!(detector.should_skip_sync(&formats, ClipboardSource::Rdp));
     }
 }
