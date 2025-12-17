@@ -241,7 +241,7 @@
 //!
 //! All requirements are implemented without shortcuts, TODOs, or simplifications.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 // Core modules
 pub mod coordinates;

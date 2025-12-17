@@ -6,7 +6,7 @@
 //!
 //! - [`lamco_rdp_input`] - RDP input event translation (keyboard scancodes, mouse coordinates)
 //! - [`lamco_clipboard_core`] - Protocol-agnostic clipboard utilities (format conversion, loop detection)
-//! - [`lamco_rdp_clipboard`] - IronRDP clipboard integration
+//! - `lamco_rdp_clipboard` - IronRDP clipboard integration (requires `clipboard-rdp` feature)
 //!
 //! ## Feature Flags
 //!
@@ -29,7 +29,7 @@
 //! lamco-rdp = { version = "0.1", default-features = false, features = ["input"] }
 //! ```
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "input")]
 pub use lamco_rdp_input as input;

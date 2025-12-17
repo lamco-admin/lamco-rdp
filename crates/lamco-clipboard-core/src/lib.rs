@@ -29,7 +29,6 @@
 //! ## Feature Flags
 //!
 //! - `image` - Enable image format conversion (PNG, JPEG, BMP ↔ DIB)
-//! - `file-transfer` - Enable file transfer support (CF_HDROP, FileContents)
 //!
 //! ## Architecture
 //!
@@ -37,7 +36,7 @@
 //! Implementations handle the actual clipboard access (Portal D-Bus, X11, etc.)
 //! while this crate handles format conversion and loop detection.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
 
 mod error;

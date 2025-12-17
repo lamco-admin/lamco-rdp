@@ -45,7 +45,7 @@
 //! synchronously from the RDP message processing loop. To avoid blocking, this implementation
 //! queues events for asynchronous processing and provides a separate event processing loop.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
 
 mod backend;

@@ -20,6 +20,21 @@ This crate provides core clipboard functionality that can be used with any clipb
 lamco-clipboard-core = "0.1"
 ```
 
+## Feature Flags
+
+```toml
+[dependencies]
+# Default - text conversion, loop detection, transfer engine
+lamco-clipboard-core = "0.1"
+
+# With image format conversion (PNG/JPEG/BMP ↔ DIB)
+lamco-clipboard-core = { version = "0.1", features = ["image"] }
+```
+
+| Feature | Description |
+|---------|-------------|
+| `image` | Image format conversion - PNG, JPEG, BMP, GIF to/from Windows DIB format. Required for clipboard image sync. |
+
 ## Quick Start
 
 ```rust
@@ -189,6 +204,27 @@ impl ClipboardSink for MyClipboard {
     }
 }
 ```
+
+## Image Conversion (requires `image` feature)
+
+Convert between Windows DIB format and standard image formats:
+
+```rust
+use lamco_clipboard_core::image::{png_to_dib, dib_to_png, dib_dimensions};
+
+// PNG → DIB (for sending to RDP client)
+let png_data = std::fs::read("image.png").unwrap();
+let dib_data = png_to_dib(&png_data).unwrap();
+
+// DIB → PNG (for receiving from RDP client)
+let png_result = dib_to_png(&dib_data).unwrap();
+
+// Get dimensions without full decode
+let (width, height) = dib_dimensions(&dib_data).unwrap();
+println!("Image: {}x{}", width, height);
+```
+
+Supported formats: PNG, JPEG, BMP, GIF (read-only).
 
 ## Supported Formats
 

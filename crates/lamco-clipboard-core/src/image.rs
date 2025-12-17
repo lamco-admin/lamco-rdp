@@ -119,8 +119,8 @@ pub fn dib_to_bmp(dib_data: &[u8]) -> ClipboardResult<Vec<u8>> {
     }
 
     // Parse DIB header to calculate file size
-    let file_size = u32::try_from(14 + dib_data.len())
-        .map_err(|_| ClipboardError::ImageDecode("DIB too large".to_string()))?;
+    let file_size =
+        u32::try_from(14 + dib_data.len()).map_err(|_| ClipboardError::ImageDecode("DIB too large".to_string()))?;
     let pixel_offset: u32 = 14 + 40; // File header + DIB header (minimum)
 
     let mut bmp = BytesMut::new();
@@ -313,11 +313,7 @@ mod tests {
     #[test]
     fn test_create_and_parse_dib() {
         // Create a small test image (10x10 red square)
-        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-            10,
-            10,
-            image::Rgba([255, 0, 0, 255]),
-        ));
+        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(10, 10, image::Rgba([255, 0, 0, 255])));
 
         // Convert to DIB
         let dib = create_dib_from_image(&image).unwrap();
@@ -334,11 +330,7 @@ mod tests {
 
     #[test]
     fn test_dib_dimensions() {
-        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-            100,
-            50,
-            image::Rgba([0, 0, 0, 255]),
-        ));
+        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(100, 50, image::Rgba([0, 0, 0, 255])));
 
         let dib = create_dib_from_image(&image).unwrap();
         let (width, height) = dib_dimensions(&dib).unwrap();
@@ -350,11 +342,7 @@ mod tests {
     #[test]
     fn test_png_roundtrip() {
         // Create a small PNG
-        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-            5,
-            5,
-            image::Rgba([100, 150, 200, 255]),
-        ));
+        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(5, 5, image::Rgba([100, 150, 200, 255])));
 
         let mut png_data = Vec::new();
         image
@@ -373,11 +361,7 @@ mod tests {
 
     #[test]
     fn test_bmp_roundtrip() {
-        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-            8,
-            8,
-            image::Rgba([50, 100, 150, 255]),
-        ));
+        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(8, 8, image::Rgba([50, 100, 150, 255])));
 
         let dib = create_dib_from_image(&image).unwrap();
 
