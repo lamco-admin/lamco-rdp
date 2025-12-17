@@ -51,7 +51,7 @@ ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", branch = "maste
 
 [package]
 name = "lamco-rdp"
-version.workspace = true
+version = "0.1.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
