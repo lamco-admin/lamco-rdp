@@ -18,8 +18,8 @@ authors = ["Lamco <contact@lamco.ai>"]
 [workspace.dependencies]
 # Internal crates
 lamco-rdp-input = { version = "0.1", path = "crates/lamco-rdp-input" }
-lamco-clipboard-core = { version = "0.1", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.1", path = "crates/lamco-rdp-clipboard" }
+lamco-clipboard-core = { version = "0.2", path = "crates/lamco-clipboard-core" }
+lamco-rdp-clipboard = { version = "0.2", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"
@@ -51,7 +51,7 @@ ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", branch = "maste
 
 [package]
 name = "lamco-rdp"
-version = "0.1.1"
+version = "0.2.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
