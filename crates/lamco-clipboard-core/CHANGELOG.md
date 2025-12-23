@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-23
+
+### Added
+- **FileGroupDescriptorW support** for RDP clipboard file transfer
+  - `FileDescriptor` struct for parsing/building FILEDESCRIPTORW structures (592 bytes each)
+  - `FileDescriptorFlags` for metadata field validation
+  - `FileDescriptor::build()` to create descriptors from local files
+  - `parse_list()` and `build_list()` for multiple file handling
+  - `CF_FILEGROUPDESCRIPTORW` (49430) and `CF_FILECONTENTS` (49338) format constants
+- **Cross-platform filename sanitization module** (`sanitize.rs`)
+  - Windows reserved name handling (CON, PRN, COM1-9, LPT1-9, AUX, NUL)
+  - Invalid character filtering/replacement (\/:*?"<>|)
+  - Trailing dots/spaces cleanup (Windows compatibility)
+  - Line ending conversion (LF ↔ CRLF)
+  - Path component extraction and validation
+
+### Changed
+- Updated `mime_to_rdp_formats()` to advertise FileGroupDescriptorW for file URIs
+- Updated `rdp_format_to_mime()` to handle FileGroupDescriptorW format
+
 ## [0.2.0] - 2025-12-21
 
 ### Added
