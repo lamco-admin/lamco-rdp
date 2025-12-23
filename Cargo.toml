@@ -40,11 +40,12 @@ image = { version = "0.25", default-features = false }
 # Encoding
 percent-encoding = "2"
 
-# IronRDP (using git master for latest fixes)
-# CI will fail version resolution - this is expected until IronRDP publishes 0.5.0
+# IronRDP (using local fork for development with file transfer support)
+# See wrd-server-specs/IRONRDP-PATCHES.md for pending PR details
 # When publishing our crates, cargo uses crates.io versions and ignores git spec
-ironrdp-cliprdr = { version = "0.4", git = "https://github.com/Devolutions/IronRDP", branch = "master" }
-ironrdp-core = { version = "0.1.5", git = "https://github.com/Devolutions/IronRDP", branch = "master" }
+# All IronRDP crates must come from same source to avoid trait conflicts
+ironrdp-cliprdr = { version = "0.5", path = "/home/greg/wayland/IronRDP/crates/ironrdp-cliprdr" }
+ironrdp-core = { version = "0.1", path = "/home/greg/wayland/IronRDP/crates/ironrdp-core" }
 
 # =============================================================================
 # Meta-crate configuration (lamco-rdp)
