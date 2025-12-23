@@ -18,7 +18,7 @@ authors = ["Lamco <contact@lamco.ai>"]
 [workspace.dependencies]
 # Internal crates
 lamco-rdp-input = { version = "0.1", path = "crates/lamco-rdp-input" }
-lamco-clipboard-core = { version = "0.2", path = "crates/lamco-clipboard-core" }
+lamco-clipboard-core = { version = "0.3", path = "crates/lamco-clipboard-core" }
 lamco-rdp-clipboard = { version = "0.2", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
@@ -53,7 +53,7 @@ ironrdp-core = { version = "0.1", path = "/home/greg/wayland/IronRDP/crates/iron
 
 [package]
 name = "lamco-rdp"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
