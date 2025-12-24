@@ -120,10 +120,13 @@ impl CliprdrBackend for RdpCliprdrBackend {
     }
 
     fn client_capabilities(&self) -> ClipboardGeneralCapabilityFlags {
-        // Request support for long format names, file streaming, and locking
+        // Request support for long format names, file streaming, locking, and privacy
         ClipboardGeneralCapabilityFlags::USE_LONG_FORMAT_NAMES
             | ClipboardGeneralCapabilityFlags::STREAM_FILECLIP_ENABLED
             | ClipboardGeneralCapabilityFlags::CAN_LOCK_CLIPDATA
+            // Privacy: don't include source file paths in clipboard data
+            // This prevents leaking the original file location from the remote system
+            | ClipboardGeneralCapabilityFlags::FILECLIP_NO_FILE_PATHS
     }
 
     fn on_ready(&mut self) {
@@ -233,5 +236,7 @@ mod tests {
 
         assert!(caps.contains(ClipboardGeneralCapabilityFlags::USE_LONG_FORMAT_NAMES));
         assert!(caps.contains(ClipboardGeneralCapabilityFlags::STREAM_FILECLIP_ENABLED));
+        assert!(caps.contains(ClipboardGeneralCapabilityFlags::CAN_LOCK_CLIPDATA));
+        assert!(caps.contains(ClipboardGeneralCapabilityFlags::FILECLIP_NO_FILE_PATHS));
     }
 }

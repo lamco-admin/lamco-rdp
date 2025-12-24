@@ -12,8 +12,12 @@ use crate::{ClipboardError, ClipboardResult};
 /// Standard Windows clipboard format: Unicode text (UTF-16LE)
 pub const CF_UNICODETEXT: u32 = 13;
 
-/// Standard Windows clipboard format: ANSI text
+/// Standard Windows clipboard format: ANSI text (Windows-1252 codepage)
 pub const CF_TEXT: u32 = 1;
+
+/// Standard Windows clipboard format: OEM text (DOS codepage)
+/// Synthesized from CF_UNICODETEXT for very old applications
+pub const CF_OEMTEXT: u32 = 7;
 
 /// Standard Windows clipboard format: Device-independent bitmap
 pub const CF_DIB: u32 = 8;
@@ -119,10 +123,16 @@ pub fn mime_to_rdp_formats(mime_types: &[&str]) -> Vec<ClipboardFormat> {
 
     for mime in mime_types {
         match *mime {
-            // Text formats
+            // Text formats - announce all synthesized text formats for compatibility
+            // Windows auto-synthesizes between these, but we announce all for maximum compatibility
             "text/plain" | "text/plain;charset=utf-8" | "UTF8_STRING" | "STRING" => {
                 if !formats.iter().any(|f: &ClipboardFormat| f.id == CF_UNICODETEXT) {
+                    // Primary format: Unicode (UTF-16LE)
                     formats.push(ClipboardFormat::unicode_text());
+                    // Synthesized: ANSI text for legacy applications
+                    formats.push(ClipboardFormat::new(CF_TEXT));
+                    // Synthesized: OEM text for very old applications
+                    formats.push(ClipboardFormat::new(CF_OEMTEXT));
                 }
             }
 
@@ -198,7 +208,8 @@ pub fn mime_to_rdp_formats(mime_types: &[&str]) -> Vec<ClipboardFormat> {
 /// ```
 pub fn rdp_format_to_mime(format_id: u32) -> Option<&'static str> {
     match format_id {
-        CF_UNICODETEXT | CF_TEXT => Some("text/plain;charset=utf-8"),
+        // All text formats map to the same MIME type - we'll convert encoding as needed
+        CF_UNICODETEXT | CF_TEXT | CF_OEMTEXT => Some("text/plain;charset=utf-8"),
         CF_HTML => Some("text/html"),
         CF_RTF => Some("text/rtf"),
         CF_DIB => Some("image/png"), // Prefer PNG output
@@ -283,6 +294,94 @@ impl FormatConverter {
         String::from_utf16(utf16).map_err(|_| ClipboardError::InvalidUtf16)
     }
 
+    /// Convert UTF-8 text to ANSI (Windows-1252) for CF_TEXT
+    ///
+    /// Characters not representable in Windows-1252 are replaced with '?'.
+    /// Adds null terminator as required by Windows.
+    pub fn text_to_ansi(&self, text: &str) -> ClipboardResult<Vec<u8>> {
+        if text.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: text.len(),
+                max: self.max_size,
+            });
+        }
+
+        let mut result = Vec::with_capacity(text.len() + 1);
+
+        for c in text.chars() {
+            result.push(char_to_windows1252(c));
+        }
+
+        // Add null terminator
+        result.push(0);
+
+        Ok(result)
+    }
+
+    /// Convert ANSI (Windows-1252) to UTF-8 (from CF_TEXT)
+    pub fn ansi_to_text(&self, data: &[u8]) -> ClipboardResult<String> {
+        if data.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: data.len(),
+                max: self.max_size,
+            });
+        }
+
+        // Remove null terminator if present
+        let data = if data.last() == Some(&0) {
+            &data[..data.len() - 1]
+        } else {
+            data
+        };
+
+        let result: String = data.iter().map(|&b| windows1252_to_char(b)).collect();
+        Ok(result)
+    }
+
+    /// Convert UTF-8 text to OEM (CP437) for CF_OEMTEXT
+    ///
+    /// Characters not representable in CP437 are replaced with '?'.
+    /// Adds null terminator as required by Windows.
+    pub fn text_to_oem(&self, text: &str) -> ClipboardResult<Vec<u8>> {
+        if text.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: text.len(),
+                max: self.max_size,
+            });
+        }
+
+        let mut result = Vec::with_capacity(text.len() + 1);
+
+        for c in text.chars() {
+            result.push(char_to_cp437(c));
+        }
+
+        // Add null terminator
+        result.push(0);
+
+        Ok(result)
+    }
+
+    /// Convert OEM (CP437) to UTF-8 (from CF_OEMTEXT)
+    pub fn oem_to_text(&self, data: &[u8]) -> ClipboardResult<String> {
+        if data.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: data.len(),
+                max: self.max_size,
+            });
+        }
+
+        // Remove null terminator if present
+        let data = if data.last() == Some(&0) {
+            &data[..data.len() - 1]
+        } else {
+            data
+        };
+
+        let result: String = data.iter().map(|&b| cp437_to_char(b)).collect();
+        Ok(result)
+    }
+
     /// Convert plain HTML to Windows CF_HTML format
     ///
     /// The CF_HTML format includes headers with byte offsets.
@@ -356,6 +455,224 @@ impl FormatConverter {
             .find(|line| line.starts_with(key))
             .and_then(|line| line[key.len()..].trim().parse().ok())
             .ok_or_else(|| ClipboardError::FormatConversion(format!("missing {} header", key)))
+    }
+
+    // =========================================================================
+    // RTF Format Support
+    // =========================================================================
+
+    /// Validate and pass through RTF data
+    ///
+    /// RTF (Rich Text Format) is passed through without conversion since both
+    /// Windows and Linux applications understand it natively. This method validates
+    /// the RTF header and returns the data unchanged.
+    ///
+    /// # Arguments
+    /// * `data` - Raw RTF data (must start with `{\rtf`)
+    ///
+    /// # Returns
+    /// * The validated RTF data, or error if invalid
+    pub fn validate_rtf(&self, data: &[u8]) -> ClipboardResult<Vec<u8>> {
+        if data.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: data.len(),
+                max: self.max_size,
+            });
+        }
+
+        // RTF documents must start with {\rtf
+        if !data.starts_with(b"{\\rtf") {
+            return Err(ClipboardError::FormatConversion(
+                "Invalid RTF: must start with {\\rtf".to_string(),
+            ));
+        }
+
+        // Basic brace matching check
+        let mut depth = 0i32;
+        for &byte in data {
+            match byte {
+                b'{' => depth += 1,
+                b'}' => depth -= 1,
+                _ => {}
+            }
+            if depth < 0 {
+                return Err(ClipboardError::FormatConversion(
+                    "Invalid RTF: unmatched closing brace".to_string(),
+                ));
+            }
+        }
+
+        if depth != 0 {
+            return Err(ClipboardError::FormatConversion(
+                "Invalid RTF: unmatched braces".to_string(),
+            ));
+        }
+
+        Ok(data.to_vec())
+    }
+
+    /// Check if data looks like valid RTF
+    ///
+    /// Quick validation without full parsing - useful for format detection.
+    pub fn is_rtf(&self, data: &[u8]) -> bool {
+        data.starts_with(b"{\\rtf")
+    }
+
+    /// Convert plain text to minimal RTF
+    ///
+    /// Creates a simple RTF document from plain text. Useful when RTF is requested
+    /// but only plain text is available.
+    pub fn text_to_rtf(&self, text: &str) -> ClipboardResult<Vec<u8>> {
+        if text.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: text.len(),
+                max: self.max_size,
+            });
+        }
+
+        let mut rtf = String::with_capacity(text.len() + 100);
+
+        // RTF header: version 1, ANSI charset, default font
+        rtf.push_str("{\\rtf1\\ansi\\deff0\n");
+
+        // Font table with a basic font
+        rtf.push_str("{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}}\n");
+
+        // Content
+        for c in text.chars() {
+            match c {
+                '\\' => rtf.push_str("\\\\"),
+                '{' => rtf.push_str("\\{"),
+                '}' => rtf.push_str("\\}"),
+                '\n' => rtf.push_str("\\par\n"),
+                '\r' => {} // Skip CR, \n handles line breaks
+                c if c.is_ascii() => rtf.push(c),
+                c => {
+                    // Unicode escape: \uN?
+                    // The ? is the fallback character for non-Unicode readers
+                    rtf.push_str(&format!("\\u{}?", c as u32));
+                }
+            }
+        }
+
+        rtf.push('}');
+
+        Ok(rtf.into_bytes())
+    }
+
+    /// Extract plain text from RTF
+    ///
+    /// Performs basic RTF parsing to extract readable text content.
+    /// This is a simplified parser that handles common cases.
+    pub fn rtf_to_text(&self, data: &[u8]) -> ClipboardResult<String> {
+        if data.len() > self.max_size {
+            return Err(ClipboardError::DataSizeExceeded {
+                actual: data.len(),
+                max: self.max_size,
+            });
+        }
+
+        let text = std::str::from_utf8(data).map_err(|_| ClipboardError::InvalidUtf8)?;
+
+        let mut result = String::new();
+        let mut chars = text.chars().peekable();
+        let mut skip_depth: Option<i32> = None; // Depth at which we started skipping
+        let mut group_depth = 0i32;
+
+        while let Some(c) = chars.next() {
+            match c {
+                '{' => {
+                    group_depth += 1;
+                }
+                '}' => {
+                    // If we were skipping and we're back to the skip start depth, stop skipping
+                    if let Some(sd) = skip_depth {
+                        if group_depth == sd {
+                            skip_depth = None;
+                        }
+                    }
+                    group_depth -= 1;
+                }
+                '\\' => {
+                    // Parse control word
+                    let mut control_word = String::new();
+                    while let Some(&nc) = chars.peek() {
+                        if nc.is_ascii_alphabetic() {
+                            control_word.push(chars.next().unwrap());
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Skip numeric parameter if present
+                    let mut has_param = false;
+                    while let Some(&nc) = chars.peek() {
+                        if nc.is_ascii_digit() || nc == '-' {
+                            chars.next();
+                            has_param = true;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Consume trailing space if present (part of control word)
+                    if chars.peek() == Some(&' ') && !has_param {
+                        chars.next();
+                    }
+
+                    // Check for destination groups to skip
+                    // These are RTF groups that contain metadata, not document text
+                    let skip_destinations = [
+                        "fonttbl", "colortbl", "stylesheet", "info", "pict",
+                        "header", "footer", "footnote", "annotation", "field",
+                        "fldinst", "datafield", "docvar", "xe", "tc", "rxe",
+                    ];
+
+                    if skip_destinations.contains(&control_word.as_str()) {
+                        skip_depth = Some(group_depth);
+                        continue;
+                    }
+
+                    // Skip if we're in a destination group
+                    if skip_depth.is_some() {
+                        continue;
+                    }
+
+                    // Handle common control words
+                    match control_word.as_str() {
+                        "par" | "line" => result.push('\n'),
+                        "tab" => result.push('\t'),
+                        "" => {
+                            // Escaped character
+                            if let Some(escaped) = chars.next() {
+                                match escaped {
+                                    '\\' | '{' | '}' => result.push(escaped),
+                                    '\'' => {
+                                        // Hex character \'xx
+                                        let hex: String = chars.by_ref().take(2).collect();
+                                        if let Ok(byte) = u8::from_str_radix(&hex, 16) {
+                                            result.push(byte as char);
+                                        }
+                                    }
+                                    '*' => {
+                                        // \* marks a destination - skip until end of current group
+                                        skip_depth = Some(group_depth);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                        _ => {} // Ignore other control words
+                    }
+                }
+                _ if skip_depth.is_none() && c >= ' ' => {
+                    result.push(c);
+                }
+                _ => {}
+            }
+        }
+
+        Ok(result)
     }
 
     /// Convert URI list to HDROP format (file paths)
@@ -800,6 +1117,203 @@ pub fn build_file_group_descriptor_w(paths: &[std::path::PathBuf]) -> ClipboardR
 }
 
 // =============================================================================
+// Codepage Conversion Helpers (Synthesized Format Support)
+// =============================================================================
+
+/// Convert a Unicode character to Windows-1252 (Western European)
+///
+/// Returns '?' for characters not representable in Windows-1252.
+fn char_to_windows1252(c: char) -> u8 {
+    let cp = c as u32;
+
+    // ASCII range (0-127) maps directly
+    if cp < 128 {
+        return cp as u8;
+    }
+
+    // Windows-1252 specific mappings (128-159 range has special characters)
+    // 160-255 mostly match Latin-1 Supplement
+    match cp {
+        // 128-159: Windows-1252 specific characters
+        0x20AC => 128, // €
+        0x201A => 130, // ‚
+        0x0192 => 131, // ƒ
+        0x201E => 132, // „
+        0x2026 => 133, // …
+        0x2020 => 134, // †
+        0x2021 => 135, // ‡
+        0x02C6 => 136, // ˆ
+        0x2030 => 137, // ‰
+        0x0160 => 138, // Š
+        0x2039 => 139, // ‹
+        0x0152 => 140, // Œ
+        0x017D => 142, // Ž
+        0x2018 => 145, // '
+        0x2019 => 146, // '
+        0x201C => 147, // "
+        0x201D => 148, // "
+        0x2022 => 149, // •
+        0x2013 => 150, // –
+        0x2014 => 151, // —
+        0x02DC => 152, // ˜
+        0x2122 => 153, // ™
+        0x0161 => 154, // š
+        0x203A => 155, // ›
+        0x0153 => 156, // œ
+        0x017E => 158, // ž
+        0x0178 => 159, // Ÿ
+        // 160-255: Latin-1 Supplement (direct mapping)
+        160..=255 => cp as u8,
+        // Not representable
+        _ => b'?',
+    }
+}
+
+/// Convert a Windows-1252 byte to Unicode character
+fn windows1252_to_char(b: u8) -> char {
+    // ASCII range maps directly
+    if b < 128 {
+        return b as char;
+    }
+
+    // 160-255 range matches Latin-1 Supplement
+    if b >= 160 {
+        return char::from_u32(b as u32).unwrap_or('?');
+    }
+
+    // 128-159: Windows-1252 specific characters
+    match b {
+        128 => '€',
+        130 => '‚',
+        131 => 'ƒ',
+        132 => '„',
+        133 => '…',
+        134 => '†',
+        135 => '‡',
+        136 => 'ˆ',
+        137 => '‰',
+        138 => 'Š',
+        139 => '‹',
+        140 => 'Œ',
+        142 => 'Ž',
+        145 => '\u{2018}', // '
+        146 => '\u{2019}', // '
+        147 => '\u{201C}', // "
+        148 => '\u{201D}', // "
+        149 => '•',
+        150 => '–',
+        151 => '—',
+        152 => '˜',
+        153 => '™',
+        154 => 'š',
+        155 => '›',
+        156 => 'œ',
+        158 => 'ž',
+        159 => 'Ÿ',
+        // Undefined positions (129, 141, 143, 144, 157)
+        _ => '?',
+    }
+}
+
+/// Convert a Unicode character to CP437 (OEM/DOS codepage)
+///
+/// Returns '?' for characters not representable in CP437.
+fn char_to_cp437(c: char) -> u8 {
+    let cp = c as u32;
+
+    // ASCII printable range (32-126) maps directly
+    if cp >= 32 && cp < 127 {
+        return cp as u8;
+    }
+
+    // Control characters (0-31) - map directly for compatibility
+    if cp < 32 {
+        return cp as u8;
+    }
+
+    // CP437 high characters (128-255) - common ones
+    match cp {
+        0x00C7 => 128, // Ç
+        0x00FC => 129, // ü
+        0x00E9 => 130, // é
+        0x00E2 => 131, // â
+        0x00E4 => 132, // ä
+        0x00E0 => 133, // à
+        0x00E5 => 134, // å
+        0x00E7 => 135, // ç
+        0x00EA => 136, // ê
+        0x00EB => 137, // ë
+        0x00E8 => 138, // è
+        0x00EF => 139, // ï
+        0x00EE => 140, // î
+        0x00EC => 141, // ì
+        0x00C4 => 142, // Ä
+        0x00C5 => 143, // Å
+        0x00C9 => 144, // É
+        0x00E6 => 145, // æ
+        0x00C6 => 146, // Æ
+        0x00F4 => 147, // ô
+        0x00F6 => 148, // ö
+        0x00F2 => 149, // ò
+        0x00FB => 150, // û
+        0x00F9 => 151, // ù
+        0x00FF => 152, // ÿ
+        0x00D6 => 153, // Ö
+        0x00DC => 154, // Ü
+        0x00A2 => 155, // ¢
+        0x00A3 => 156, // £
+        0x00A5 => 157, // ¥
+        0x20A7 => 158, // ₧
+        0x0192 => 159, // ƒ
+        0x00E1 => 160, // á
+        0x00ED => 161, // í
+        0x00F3 => 162, // ó
+        0x00FA => 163, // ú
+        0x00F1 => 164, // ñ
+        0x00D1 => 165, // Ñ
+        0x00AA => 166, // ª
+        0x00BA => 167, // º
+        0x00BF => 168, // ¿
+        0x00A1 => 173, // ¡
+        0x00AB => 174, // «
+        0x00BB => 175, // »
+        0x00B0 => 248, // °
+        0x00B7 => 249, // ·
+        0x00B2 => 253, // ²
+        _ => b'?',
+    }
+}
+
+/// Convert a CP437 byte to Unicode character
+fn cp437_to_char(b: u8) -> char {
+    // CP437 lookup table for 128-255
+    const CP437_HIGH: [char; 128] = [
+        'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å',
+        'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ',
+        'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»',
+        '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐',
+        '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧',
+        '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀',
+        'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩',
+        '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ',
+    ];
+
+    if b < 32 {
+        // Control characters - return as-is or map to space
+        char::from_u32(b as u32).unwrap_or(' ')
+    } else if b < 127 {
+        // ASCII printable
+        b as char
+    } else if b == 127 {
+        // DEL character
+        '⌂'
+    } else {
+        // High characters (128-255)
+        CP437_HIGH[(b - 128) as usize]
+    }
+}
+
+// =============================================================================
 // Tests
 // =============================================================================
 
@@ -890,5 +1404,162 @@ mod tests {
         let recovered = converter.hdrop_to_uri_list(&hdrop).unwrap();
 
         assert_eq!(recovered, original);
+    }
+
+    #[test]
+    fn test_text_to_ansi() {
+        let converter = FormatConverter::new();
+        let result = converter.text_to_ansi("Hello").unwrap();
+        assert_eq!(result, vec![b'H', b'e', b'l', b'l', b'o', 0]);
+    }
+
+    #[test]
+    fn test_ansi_to_text() {
+        let converter = FormatConverter::new();
+        let data = vec![b'H', b'i', 0];
+        let result = converter.ansi_to_text(&data).unwrap();
+        assert_eq!(result, "Hi");
+    }
+
+    #[test]
+    fn test_ansi_roundtrip_special_chars() {
+        let converter = FormatConverter::new();
+        // Test Euro sign and em-dash (Windows-1252 specific)
+        let text = "Price: \u{20AC}100 \u{2014} test";
+        let ansi = converter.text_to_ansi(text).unwrap();
+        let recovered = converter.ansi_to_text(&ansi).unwrap();
+        assert_eq!(recovered, text);
+    }
+
+    #[test]
+    fn test_text_to_oem() {
+        let converter = FormatConverter::new();
+        let result = converter.text_to_oem("Hello").unwrap();
+        assert_eq!(result, vec![b'H', b'e', b'l', b'l', b'o', 0]);
+    }
+
+    #[test]
+    fn test_oem_to_text() {
+        let converter = FormatConverter::new();
+        let data = vec![b'H', b'i', 0];
+        let result = converter.oem_to_text(&data).unwrap();
+        assert_eq!(result, "Hi");
+    }
+
+    #[test]
+    fn test_synthesized_text_formats_announced() {
+        // Verify that announcing text also announces synthesized formats
+        let formats = mime_to_rdp_formats(&["text/plain"]);
+        assert!(formats.iter().any(|f| f.id == CF_UNICODETEXT));
+        assert!(formats.iter().any(|f| f.id == CF_TEXT));
+        assert!(formats.iter().any(|f| f.id == CF_OEMTEXT));
+    }
+
+    // =========================================================================
+    // RTF Tests
+    // =========================================================================
+
+    #[test]
+    fn test_validate_rtf_valid() {
+        let converter = FormatConverter::new();
+        let rtf = b"{\\rtf1\\ansi Hello World}";
+        let result = converter.validate_rtf(rtf);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), rtf.to_vec());
+    }
+
+    #[test]
+    fn test_validate_rtf_invalid_header() {
+        let converter = FormatConverter::new();
+        let not_rtf = b"Hello World";
+        let result = converter.validate_rtf(not_rtf);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rtf_unmatched_braces() {
+        let converter = FormatConverter::new();
+        let rtf = b"{\\rtf1\\ansi Hello {World";
+        let result = converter.validate_rtf(rtf);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_is_rtf() {
+        let converter = FormatConverter::new();
+        assert!(converter.is_rtf(b"{\\rtf1 test}"));
+        assert!(!converter.is_rtf(b"plain text"));
+    }
+
+    #[test]
+    fn test_text_to_rtf() {
+        let converter = FormatConverter::new();
+        let result = converter.text_to_rtf("Hello\nWorld").unwrap();
+        let rtf_str = std::str::from_utf8(&result).unwrap();
+
+        assert!(rtf_str.starts_with("{\\rtf1"));
+        assert!(rtf_str.contains("Hello"));
+        assert!(rtf_str.contains("\\par"));
+        assert!(rtf_str.contains("World"));
+        assert!(rtf_str.ends_with("}"));
+    }
+
+    #[test]
+    fn test_text_to_rtf_escapes() {
+        let converter = FormatConverter::new();
+        let result = converter.text_to_rtf("Test {braces} and \\backslash").unwrap();
+        let rtf_str = std::str::from_utf8(&result).unwrap();
+
+        assert!(rtf_str.contains("\\{braces\\}"));
+        assert!(rtf_str.contains("\\\\backslash"));
+    }
+
+    #[test]
+    fn test_rtf_to_text_simple() {
+        let converter = FormatConverter::new();
+        let rtf = b"{\\rtf1\\ansi Hello World}";
+        let result = converter.rtf_to_text(rtf).unwrap();
+        assert_eq!(result.trim(), "Hello World");
+    }
+
+    #[test]
+    fn test_rtf_to_text_with_formatting() {
+        let converter = FormatConverter::new();
+        let rtf = b"{\\rtf1\\ansi{\\b Bold} and {\\i italic}}";
+        let result = converter.rtf_to_text(rtf).unwrap();
+        assert!(result.contains("Bold"));
+        assert!(result.contains("italic"));
+    }
+
+    #[test]
+    fn test_rtf_to_text_with_paragraphs() {
+        let converter = FormatConverter::new();
+        let rtf = b"{\\rtf1\\ansi Line1\\par Line2}";
+        let result = converter.rtf_to_text(rtf).unwrap();
+        assert!(result.contains("Line1\nLine2"));
+    }
+
+    #[test]
+    fn test_rtf_roundtrip() {
+        let converter = FormatConverter::new();
+        let original = "Hello World!\nSecond line.";
+
+        let rtf = converter.text_to_rtf(original).unwrap();
+        let recovered = converter.rtf_to_text(&rtf).unwrap();
+
+        // Trim because RTF may have some whitespace differences
+        assert_eq!(recovered.trim(), original);
+    }
+
+    #[test]
+    fn test_rtf_format_announced() {
+        let formats = mime_to_rdp_formats(&["text/rtf"]);
+        assert!(formats.iter().any(|f| f.id == CF_RTF));
+        assert!(formats.iter().any(|f| f.name.as_ref().is_some_and(|n| n == "Rich Text Format")));
+    }
+
+    #[test]
+    fn test_rtf_format_to_mime() {
+        assert_eq!(rdp_format_to_mime(CF_RTF), Some("text/rtf"));
     }
 }
