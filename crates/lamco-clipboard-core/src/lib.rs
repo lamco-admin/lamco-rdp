@@ -51,7 +51,9 @@ pub mod sanitize;
 pub mod image;
 
 pub use error::{ClipboardError, ClipboardResult};
-pub use formats::{build_file_group_descriptor_w, ClipboardFormat, FileDescriptor, FileDescriptorFlags, FormatConverter};
+pub use formats::{
+    build_file_group_descriptor_w, ClipboardFormat, FileDescriptor, FileDescriptorFlags, FormatConverter,
+};
 pub use loop_detector::{ClipboardSource, LoopDetectionConfig, LoopDetector};
 pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};
 pub use transfer::{

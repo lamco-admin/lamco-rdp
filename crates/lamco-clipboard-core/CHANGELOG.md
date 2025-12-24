@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-24
+
+### Added
+- **RTF format support** for Rich Text Format clipboard content
+  - `validate_rtf()` - Validate RTF document structure
+  - `is_rtf()` - Quick format detection
+  - `text_to_rtf()` - Plain text to RTF conversion
+  - `rtf_to_text()` - RTF to plain text extraction with proper group/destination handling
+- **Synthesized format support** for legacy Windows compatibility
+  - `CF_TEXT` (format 1) - ANSI text using Windows-1252 codepage
+  - `CF_OEMTEXT` (format 7) - DOS text using CP437 codepage
+  - `text_to_ansi()` / `ansi_to_text()` - Windows-1252 conversion
+  - `text_to_oem()` / `oem_to_text()` - CP437 conversion
+  - Full codepage lookup tables for special character handling
+
+### Changed
+- `mime_to_rdp_formats()` now announces CF_TEXT and CF_OEMTEXT alongside CF_UNICODETEXT
+
 ## [0.3.0] - 2025-12-23
 
 ### Added

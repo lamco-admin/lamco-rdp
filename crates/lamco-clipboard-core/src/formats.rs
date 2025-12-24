@@ -173,9 +173,10 @@ pub fn mime_to_rdp_formats(mime_types: &[&str]) -> Vec<ClipboardFormat> {
                 // For RDP file transfer, we need FileGroupDescriptorW (file list metadata)
                 // and FileContents (actual file data retrieval)
                 // ID 0 means it's a registered format - the name is what matters
-                if !formats.iter().any(|f: &ClipboardFormat| {
-                    f.name.as_ref().is_some_and(|n| n == "FileGroupDescriptorW")
-                }) {
+                if !formats
+                    .iter()
+                    .any(|f: &ClipboardFormat| f.name.as_ref().is_some_and(|n| n == "FileGroupDescriptorW"))
+                {
                     formats.push(ClipboardFormat::with_name(0, "FileGroupDescriptorW"));
                     formats.push(ClipboardFormat::with_name(0, "FileContents"));
                 }
@@ -623,9 +624,22 @@ impl FormatConverter {
                     // Check for destination groups to skip
                     // These are RTF groups that contain metadata, not document text
                     let skip_destinations = [
-                        "fonttbl", "colortbl", "stylesheet", "info", "pict",
-                        "header", "footer", "footnote", "annotation", "field",
-                        "fldinst", "datafield", "docvar", "xe", "tc", "rxe",
+                        "fonttbl",
+                        "colortbl",
+                        "stylesheet",
+                        "info",
+                        "pict",
+                        "header",
+                        "footer",
+                        "footnote",
+                        "annotation",
+                        "field",
+                        "fldinst",
+                        "datafield",
+                        "docvar",
+                        "xe",
+                        "tc",
+                        "rxe",
                     ];
 
                     if skip_destinations.contains(&control_word.as_str()) {
@@ -923,8 +937,7 @@ impl FileDescriptor {
         // Parse creation time (offset 40, 8 bytes) if flag set
         let creation_time = if flags.has_flag(FileDescriptorFlags::CREATETIME) {
             Some(u64::from_le_bytes([
-                data[40], data[41], data[42], data[43],
-                data[44], data[45], data[46], data[47],
+                data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47],
             ]))
         } else {
             None
@@ -933,8 +946,7 @@ impl FileDescriptor {
         // Parse access time (offset 48, 8 bytes) if flag set
         let access_time = if flags.has_flag(FileDescriptorFlags::ACCESSTIME) {
             Some(u64::from_le_bytes([
-                data[48], data[49], data[50], data[51],
-                data[52], data[53], data[54], data[55],
+                data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55],
             ]))
         } else {
             None
@@ -943,8 +955,7 @@ impl FileDescriptor {
         // Parse write time (offset 56, 8 bytes) if flag set
         let write_time = if flags.has_flag(FileDescriptorFlags::WRITESTIME) {
             Some(u64::from_le_bytes([
-                data[56], data[57], data[58], data[59],
-                data[60], data[61], data[62], data[63],
+                data[56], data[57], data[58], data[59], data[60], data[61], data[62], data[63],
             ]))
         } else {
             None
@@ -1041,11 +1052,11 @@ impl FileDescriptor {
     /// Returns 592 bytes representing the file descriptor.
     /// The filename is sanitized for Windows compatibility.
     pub fn build(path: &std::path::Path) -> ClipboardResult<Vec<u8>> {
-        let metadata = std::fs::metadata(path).map_err(|e| {
-            ClipboardError::FormatConversion(format!("Failed to get file metadata: {}", e))
-        })?;
+        let metadata = std::fs::metadata(path)
+            .map_err(|e| ClipboardError::FormatConversion(format!("Failed to get file metadata: {}", e)))?;
 
-        let raw_filename = path.file_name()
+        let raw_filename = path
+            .file_name()
             .and_then(|n| n.to_str())
             .ok_or_else(|| ClipboardError::FormatConversion("Invalid filename".to_string()))?;
 
@@ -1222,7 +1233,7 @@ fn char_to_cp437(c: char) -> u8 {
     let cp = c as u32;
 
     // ASCII printable range (32-126) maps directly
-    if cp >= 32 && cp < 127 {
+    if (32..127).contains(&cp) {
         return cp as u8;
     }
 
@@ -1288,14 +1299,12 @@ fn char_to_cp437(c: char) -> u8 {
 fn cp437_to_char(b: u8) -> char {
     // CP437 lookup table for 128-255
     const CP437_HIGH: [char; 128] = [
-        'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å',
-        'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ',
-        'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»',
-        '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐',
-        '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧',
-        '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀',
-        'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩',
-        '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ',
+        'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò',
+        'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½',
+        '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴',
+        '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫',
+        '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ',
+        'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ',
     ];
 
     if b < 32 {
@@ -1555,7 +1564,9 @@ mod tests {
     fn test_rtf_format_announced() {
         let formats = mime_to_rdp_formats(&["text/rtf"]);
         assert!(formats.iter().any(|f| f.id == CF_RTF));
-        assert!(formats.iter().any(|f| f.name.as_ref().is_some_and(|n| n == "Rich Text Format")));
+        assert!(formats
+            .iter()
+            .any(|f| f.name.as_ref().is_some_and(|n| n == "Rich Text Format")));
     }
 
     #[test]

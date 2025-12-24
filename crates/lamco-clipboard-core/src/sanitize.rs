@@ -34,9 +34,8 @@ const WINDOWS_INVALID_CHARS: &[char] = &['\\', '/', ':', '*', '?', '"', '<', '>'
 /// Reserved filenames in Windows (case-insensitive).
 /// These cannot be used as filenames, even with extensions.
 const WINDOWS_RESERVED_NAMES: &[&str] = &[
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+    "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
 /// Maximum filename length for Windows (without path).
@@ -472,7 +471,10 @@ mod tests {
     #[test]
     fn test_sanitize_filename_for_windows_invalid_chars() {
         assert_eq!(sanitize_filename_for_windows("file:name.txt"), "file_name.txt");
-        assert_eq!(sanitize_filename_for_windows("a\\b/c:d*e?f\"g<h>i|j.txt"), "a_b_c_d_e_f_g_h_i_j.txt");
+        assert_eq!(
+            sanitize_filename_for_windows("a\\b/c:d*e?f\"g<h>i|j.txt"),
+            "a_b_c_d_e_f_g_h_i_j.txt"
+        );
     }
 
     #[test]
@@ -499,7 +501,8 @@ mod tests {
     #[test]
     fn test_sanitize_filename_for_linux_basic() {
         assert_eq!(sanitize_filename_for_linux("normal.txt"), "normal.txt");
-        assert_eq!(sanitize_filename_for_linux("file:name.txt"), "file:name.txt"); // Colons are OK on Linux
+        assert_eq!(sanitize_filename_for_linux("file:name.txt"), "file:name.txt");
+        // Colons are OK on Linux
     }
 
     #[test]
@@ -538,17 +541,8 @@ mod tests {
 
     #[test]
     fn test_convert_line_endings() {
-        assert_eq!(
-            convert_line_endings_to_windows("a\nb\nc"),
-            "a\r\nb\r\nc"
-        );
-        assert_eq!(
-            convert_line_endings_to_windows("a\r\nb\nc"),
-            "a\r\nb\r\nc"
-        );
-        assert_eq!(
-            convert_line_endings_to_unix("a\r\nb\r\nc"),
-            "a\nb\nc"
-        );
+        assert_eq!(convert_line_endings_to_windows("a\nb\nc"), "a\r\nb\r\nc");
+        assert_eq!(convert_line_endings_to_windows("a\r\nb\nc"), "a\r\nb\r\nc");
+        assert_eq!(convert_line_endings_to_unix("a\r\nb\r\nc"), "a\nb\nc");
     }
 }
