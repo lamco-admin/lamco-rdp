@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-30
+
+### Added
+- **DIBV5 format support** for transparent image clipboard operations
+  - `CF_DIBV5` (format 17) - Windows BITMAPV5HEADER format constant
+  - `png_to_dibv5()` - Convert PNG to DIBV5 with alpha channel preservation
+  - `dibv5_to_png()` - Convert DIBV5 back to PNG
+  - `jpeg_to_dibv5()` - Convert JPEG to DIBV5
+  - `dibv5_to_jpeg()` - Convert DIBV5 to JPEG
+  - `has_transparency()` - Detect if image has transparent pixels
+  - Full BITMAPV5HEADER parsing with color mask support
+
+### Changed
+- `mime_to_rdp_formats()` now announces CF_DIBV5 for PNG sources (higher fidelity than CF_DIB)
+
 ## [0.4.0] - 2025-12-24
 
 ### Added
@@ -86,6 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - SHA256 integrity verification
   - Configurable chunk size, max size, and timeout
 
+[0.5.0]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.5.0
+[0.4.0]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.4.0
+[0.3.0]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.3.0
 [0.2.0]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.2.0
 [0.1.1]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.1.1
 [0.1.0]: https://github.com/lamco-admin/lamco-rdp/releases/tag/lamco-clipboard-core-v0.1.0

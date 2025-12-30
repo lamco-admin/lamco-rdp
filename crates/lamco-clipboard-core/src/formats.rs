@@ -22,6 +22,10 @@ pub const CF_OEMTEXT: u32 = 7;
 /// Standard Windows clipboard format: Device-independent bitmap
 pub const CF_DIB: u32 = 8;
 
+/// Standard Windows clipboard format: DIBV5 (Device-independent bitmap V5)
+/// Extended bitmap format with alpha channel and color space support (124-byte header)
+pub const CF_DIBV5: u32 = 17;
+
 /// Standard Windows clipboard format: File drop list
 pub const CF_HDROP: u32 = 15;
 
@@ -147,7 +151,11 @@ pub fn mime_to_rdp_formats(mime_types: &[&str]) -> Vec<ClipboardFormat> {
             // Image formats
             "image/png" => {
                 formats.push(ClipboardFormat::png());
-                // Also offer DIB for compatibility
+                // Also offer DIBV5 for alpha channel support (modern Windows apps prefer this)
+                if !formats.iter().any(|f: &ClipboardFormat| f.id == CF_DIBV5) {
+                    formats.push(ClipboardFormat::new(CF_DIBV5));
+                }
+                // Also offer DIB for legacy compatibility
                 if !formats.iter().any(|f: &ClipboardFormat| f.id == CF_DIB) {
                     formats.push(ClipboardFormat::new(CF_DIB));
                 }
@@ -213,7 +221,7 @@ pub fn rdp_format_to_mime(format_id: u32) -> Option<&'static str> {
         CF_UNICODETEXT | CF_TEXT | CF_OEMTEXT => Some("text/plain;charset=utf-8"),
         CF_HTML => Some("text/html"),
         CF_RTF => Some("text/rtf"),
-        CF_DIB => Some("image/png"), // Prefer PNG output
+        CF_DIB | CF_DIBV5 => Some("image/png"), // Prefer PNG output (preserves alpha from DIBV5)
         CF_PNG => Some("image/png"),
         CF_JPEG => Some("image/jpeg"),
         CF_GIF => Some("image/gif"),
