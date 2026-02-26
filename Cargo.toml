@@ -4,7 +4,6 @@ members = [
     "crates/lamco-rdp-input",
     "crates/lamco-clipboard-core",
     "crates/lamco-rdp-clipboard",
-    "crates/lamco-pipewire",  # Local fork with zero-size buffer fix
 ]
 
 [workspace.package]
@@ -41,12 +40,10 @@ image = { version = "0.25", default-features = false }
 # Encoding
 percent-encoding = "2"
 
-# IronRDP (using our fork with pending PRs #1057, #1063-1066)
-# Version 0.5 matches our fork; crates.io still has 0.4.x
-# Cannot publish to crates.io until IronRDP merges PRs and publishes 0.5
-# All IronRDP crates must come from same source to avoid trait conflicts
-ironrdp-cliprdr = { version = "0.5", git = "https://github.com/glamberson/IronRDP", branch = "master" }
-ironrdp-core = { version = "0.1", git = "https://github.com/glamberson/IronRDP", branch = "master" }
+# IronRDP — all previous fork PRs (#1057, #1063-1066, #1096-1100) merged upstream.
+# ironrdp-cliprdr 0.5.0 is on crates.io. Using published version.
+ironrdp-cliprdr = "0.5"
+ironrdp-core = "0.1"
 
 # =============================================================================
 # Meta-crate configuration (lamco-rdp)
