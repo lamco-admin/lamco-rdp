@@ -421,20 +421,121 @@ impl ScancodeMapper {
     }
 
     /// Load layout-specific overrides
+    ///
+    /// These remap physical scancode positions for layouts where the
+    /// physical key arrangement differs from US QWERTY. This handles
+    /// the case where the virtual keyboard device needs layout-correct
+    /// evdev keycodes rather than relying on XKB for remapping.
     fn load_layout_overrides(&mut self) {
-        // German layout (QWERTZ)
-        let mut de_overrides = HashMap::new();
-        de_overrides.insert(0x15, KEY_Z); // Y → Z
-        de_overrides.insert(0x2C, KEY_Y); // Z → Y
-        self.layout_overrides.insert("de".to_string(), de_overrides);
+        // German QWERTZ: Y and Z are swapped
+        let mut de = HashMap::new();
+        de.insert(0x15, KEY_Z); // Y position → Z
+        de.insert(0x2C, KEY_Y); // Z position → Y
+        self.layout_overrides.insert("de".to_string(), de);
 
-        // French layout (AZERTY)
-        let mut fr_overrides = HashMap::new();
-        fr_overrides.insert(0x10, KEY_A); // Q → A
-        fr_overrides.insert(0x1E, KEY_Q); // A → Q
-        fr_overrides.insert(0x11, KEY_Z); // W → Z
-        fr_overrides.insert(0x2C, KEY_W); // Z → W
-        self.layout_overrides.insert("fr".to_string(), fr_overrides);
+        // French AZERTY: A↔Q and W↔Z swapped, M moved
+        let mut fr = HashMap::new();
+        fr.insert(0x10, KEY_A); // Q position → A
+        fr.insert(0x1E, KEY_Q); // A position → Q
+        fr.insert(0x11, KEY_Z); // W position → Z
+        fr.insert(0x2C, KEY_W); // Z position → W
+        fr.insert(0x27, KEY_M); // semicolon position → M
+        fr.insert(0x32, KEY_COMMA); // M position → comma
+        self.layout_overrides.insert("fr".to_string(), fr);
+
+        // UK layout: nearly identical to US, only the backslash/102nd key differs
+        let mut uk = HashMap::new();
+        uk.insert(0x2B, KEY_102ND); // backslash position → 102nd key (# on UK)
+        self.layout_overrides.insert("uk".to_string(), uk.clone());
+        self.layout_overrides.insert("gb".to_string(), uk);
+
+        // Spanish layout: same physical arrangement as US QWERTY
+        // Differences are handled by XKB (accent keys, ñ via dead keys)
+        // No scancode overrides needed, but register it as a known layout
+        self.layout_overrides.insert("es".to_string(), HashMap::new());
+
+        // Portuguese layout: same physical arrangement as US QWERTY
+        self.layout_overrides.insert("pt".to_string(), HashMap::new());
+
+        // Italian layout: same physical arrangement as US QWERTY
+        self.layout_overrides.insert("it".to_string(), HashMap::new());
+
+        // Belgian AZERTY: same as French AZERTY for physical keys
+        let mut be = HashMap::new();
+        be.insert(0x10, KEY_A);
+        be.insert(0x1E, KEY_Q);
+        be.insert(0x11, KEY_Z);
+        be.insert(0x2C, KEY_W);
+        be.insert(0x27, KEY_M);
+        be.insert(0x32, KEY_COMMA);
+        self.layout_overrides.insert("be".to_string(), be);
+
+        // Swiss German/French: QWERTZ base (same Y↔Z swap as German)
+        let mut ch = HashMap::new();
+        ch.insert(0x15, KEY_Z);
+        ch.insert(0x2C, KEY_Y);
+        self.layout_overrides.insert("ch".to_string(), ch);
+
+        // Dvorak: comprehensive letter rearrangement
+        let mut dvorak = HashMap::new();
+        // Top row: ' , . p y f g c r l
+        dvorak.insert(0x10, KEY_APOSTROPHE); // Q → '
+        dvorak.insert(0x11, KEY_COMMA); // W → ,
+        dvorak.insert(0x12, KEY_DOT); // E → .
+        dvorak.insert(0x13, KEY_P); // R → P
+        dvorak.insert(0x14, KEY_Y); // T → Y
+        dvorak.insert(0x15, KEY_F); // Y → F
+        dvorak.insert(0x16, KEY_G); // U → G
+        dvorak.insert(0x17, KEY_C); // I → C
+        dvorak.insert(0x18, KEY_R); // O → R
+        dvorak.insert(0x19, KEY_L); // P → L
+                                    // Home row: a o e u i d h t n s
+        dvorak.insert(0x1E, KEY_A); // A → A (same)
+        dvorak.insert(0x1F, KEY_O); // S → O
+        dvorak.insert(0x20, KEY_E); // D → E
+        dvorak.insert(0x21, KEY_U); // F → U
+        dvorak.insert(0x22, KEY_I); // G → I
+        dvorak.insert(0x23, KEY_D); // H → D
+        dvorak.insert(0x24, KEY_H); // J → H
+        dvorak.insert(0x25, KEY_T); // K → T
+        dvorak.insert(0x26, KEY_N); // L → N
+        dvorak.insert(0x27, KEY_S); // ; → S
+                                    // Bottom row: ; q j k x b m w v z
+        dvorak.insert(0x2C, KEY_SEMICOLON); // Z → ;
+        dvorak.insert(0x2D, KEY_Q); // X → Q
+        dvorak.insert(0x2E, KEY_J); // C → J
+        dvorak.insert(0x2F, KEY_K); // V → K
+        dvorak.insert(0x30, KEY_X); // B → X
+        dvorak.insert(0x31, KEY_B); // N → B
+        dvorak.insert(0x32, KEY_M); // M → M (same)
+        dvorak.insert(0x33, KEY_W); // , → W
+        dvorak.insert(0x34, KEY_V); // . → V
+        dvorak.insert(0x35, KEY_Z); // / → Z
+        self.layout_overrides.insert("dvorak".to_string(), dvorak);
+
+        // Colemak: partial rearrangement from QWERTY
+        let mut colemak = HashMap::new();
+        // Changes from QWERTY: e→f, r→p, t→g, y→j, u→l, i→u, o→y, p→;
+        // s→r, d→s, f→t, g→d, j→n, k→e, l→i, ;→o
+        // n→k
+        colemak.insert(0x12, KEY_F); // E → F
+        colemak.insert(0x13, KEY_P); // R → P
+        colemak.insert(0x14, KEY_G); // T → G
+        colemak.insert(0x15, KEY_J); // Y → J
+        colemak.insert(0x16, KEY_L); // U → L
+        colemak.insert(0x17, KEY_U); // I → U
+        colemak.insert(0x18, KEY_Y); // O → Y
+        colemak.insert(0x19, KEY_SEMICOLON); // P → ;
+        colemak.insert(0x1F, KEY_R); // S → R
+        colemak.insert(0x20, KEY_S); // D → S
+        colemak.insert(0x21, KEY_T); // F → T
+        colemak.insert(0x22, KEY_D); // G → D
+        colemak.insert(0x24, KEY_N); // J → N
+        colemak.insert(0x25, KEY_E); // K → E
+        colemak.insert(0x26, KEY_I); // L → I
+        colemak.insert(0x27, KEY_O); // ; → O
+        colemak.insert(0x31, KEY_K); // N → K
+        self.layout_overrides.insert("colemak".to_string(), colemak);
     }
 
     /// Translate RDP scancode to Linux evdev keycode

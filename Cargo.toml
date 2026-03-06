@@ -13,7 +13,7 @@ rust-version = "1.77"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/lamco-admin/lamco-rdp"
 homepage = "https://lamco.ai"
-authors = ["Lamco <contact@lamco.ai>"]
+authors = ["Greg Lamberson <greg@lamco.io>"]
 
 [workspace.dependencies]
 # Internal crates
@@ -51,7 +51,7 @@ ironrdp-core = "0.1"
 
 [package]
 name = "lamco-rdp"
-version = "0.5.0"
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
