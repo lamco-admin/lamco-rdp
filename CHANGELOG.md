@@ -5,7 +5,38 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.2] - 2026-03-15
+
+### Changed
+- Bump to Rust edition 2024, minimum supported Rust version 1.85
+- Updated all sub-crate dependencies:
+  - lamco-rdp-input 0.1.3
+  - lamco-clipboard-core 0.5.2
+  - lamco-rdp-clipboard 0.2.3
+
+## [0.5.1] - 2026-01-06
+
+### Changed
+- Hash-based loop detection improvements in clipboard-core
+- Expanded keyboard layouts in rdp-input
+
+## [0.5.0] - 2025-12-30
+
+### Changed
+- Switched IronRDP deps from fork to upstream crates.io 0.5.0
+- lamco-clipboard-core 0.5.0: DIBV5 format support
+- lamco-rdp-clipboard 0.2.2: CB_FILECLIP_NO_FILE_PATHS capability
+
+## [0.4.0] - 2025-12-24
+
+### Changed
+- lamco-clipboard-core 0.4.0: RTF and synthesized format support
+
+## [0.3.0] - 2025-12-23
+
+### Changed
+- lamco-clipboard-core 0.3.0: FileGroupDescriptorW support
+- lamco-rdp-clipboard 0.2.1: updated clipboard-core dep
 
 ## [0.2.0] - 2025-12-21
 
