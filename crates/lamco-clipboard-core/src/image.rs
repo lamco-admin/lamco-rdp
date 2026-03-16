@@ -329,7 +329,7 @@ fn parse_dib_to_image(dib_data: &[u8]) -> ClipboardResult<DynamicImage> {
             return Err(ClipboardError::ImageDecode(format!(
                 "Unsupported DIB bit depth: {}",
                 bit_count
-            )))
+            )));
         }
     };
 

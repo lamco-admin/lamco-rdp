@@ -489,7 +489,7 @@ impl ScancodeMapper {
         dvorak.insert(0x17, KEY_C); // I → C
         dvorak.insert(0x18, KEY_R); // O → R
         dvorak.insert(0x19, KEY_L); // P → L
-                                    // Home row: a o e u i d h t n s
+        // Home row: a o e u i d h t n s
         dvorak.insert(0x1E, KEY_A); // A → A (same)
         dvorak.insert(0x1F, KEY_O); // S → O
         dvorak.insert(0x20, KEY_E); // D → E
@@ -500,7 +500,7 @@ impl ScancodeMapper {
         dvorak.insert(0x25, KEY_T); // K → T
         dvorak.insert(0x26, KEY_N); // L → N
         dvorak.insert(0x27, KEY_S); // ; → S
-                                    // Bottom row: ; q j k x b m w v z
+        // Bottom row: ; q j k x b m w v z
         dvorak.insert(0x2C, KEY_SEMICOLON); // Z → ;
         dvorak.insert(0x2D, KEY_Q); // X → Q
         dvorak.insert(0x2E, KEY_J); // C → J

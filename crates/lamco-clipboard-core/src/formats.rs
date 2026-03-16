@@ -1572,9 +1572,11 @@ mod tests {
     fn test_rtf_format_announced() {
         let formats = mime_to_rdp_formats(&["text/rtf"]);
         assert!(formats.iter().any(|f| f.id == CF_RTF));
-        assert!(formats
-            .iter()
-            .any(|f| f.name.as_ref().is_some_and(|n| n == "Rich Text Format")));
+        assert!(
+            formats
+                .iter()
+                .any(|f| f.name.as_ref().is_some_and(|n| n == "Rich Text Format"))
+        );
     }
 
     #[test]

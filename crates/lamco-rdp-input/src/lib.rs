@@ -255,7 +255,7 @@ pub mod translator;
 pub use coordinates::{CoordinateTransformer, MonitorInfo};
 pub use error::{ErrorContext, InputError, RecoveryAction, Result};
 pub use keyboard::{KeyModifiers, KeyboardEvent, KeyboardHandler};
-pub use mapper::{keycodes, ScancodeMapper};
+pub use mapper::{ScancodeMapper, keycodes};
 pub use mouse::{MouseButton, MouseEvent, MouseHandler};
 pub use translator::{InputTranslator, KeyboardEventType, LinuxInputEvent, RdpInputEvent};
 

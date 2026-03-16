@@ -52,13 +52,13 @@ pub mod image;
 
 pub use error::{ClipboardError, ClipboardResult};
 pub use formats::{
-    build_file_group_descriptor_w, ClipboardFormat, FileDescriptor, FileDescriptorFlags, FormatConverter,
+    ClipboardFormat, FileDescriptor, FileDescriptorFlags, FormatConverter, build_file_group_descriptor_w,
 };
 pub use loop_detector::{ClipboardSource, LoopDetectionConfig, LoopDetector};
 pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};
 pub use transfer::{
-    TransferConfig, TransferEngine, TransferProgress, TransferState, DEFAULT_CHUNK_SIZE, DEFAULT_MAX_SIZE,
-    DEFAULT_TIMEOUT_MS,
+    DEFAULT_CHUNK_SIZE, DEFAULT_MAX_SIZE, DEFAULT_TIMEOUT_MS, TransferConfig, TransferEngine, TransferProgress,
+    TransferState,
 };
 
 /// Prelude module for convenient imports
