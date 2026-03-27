@@ -51,7 +51,7 @@ ironrdp-core = "0.1"
 
 [package]
 name = "lamco-rdp"
-version = "0.5.2"
+version = "0.5.3"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
