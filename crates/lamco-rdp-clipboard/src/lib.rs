@@ -52,15 +52,19 @@ mod backend;
 mod error;
 mod event;
 mod factory;
+mod file_descriptor;
+mod sink;
 
 pub use backend::RdpCliprdrBackend;
 pub use error::{ClipboardRdpError, ClipboardRdpResult};
 pub use event::{ClipboardEvent, ClipboardEventReceiver, ClipboardEventSender};
 pub use factory::RdpCliprdrFactory;
+pub use file_descriptor::{FileDescriptor, FileDescriptorFlags, build_file_group_descriptor_w};
+pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};
 
 // Re-export core types for convenience
 pub use lamco_clipboard_core;
-pub use lamco_clipboard_core::{ClipboardFormat, ClipboardSink, FormatConverter, LoopDetector};
+pub use lamco_clipboard_core::{ClipboardFormat, FormatConverter, LoopDetector};
 
 // Re-export IronRDP types commonly needed
 pub use ironrdp_cliprdr::backend::{ClipboardMessage, ClipboardMessageProxy};

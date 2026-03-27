@@ -18,8 +18,8 @@ authors = ["Greg Lamberson <greg@lamco.io>"]
 [workspace.dependencies]
 # Internal crates
 lamco-rdp-input = { version = "0.1", path = "crates/lamco-rdp-input" }
-lamco-clipboard-core = { version = "0.5", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.2", path = "crates/lamco-rdp-clipboard" }
+lamco-clipboard-core = { version = "0.6", path = "crates/lamco-clipboard-core" }
+lamco-rdp-clipboard = { version = "0.3", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"

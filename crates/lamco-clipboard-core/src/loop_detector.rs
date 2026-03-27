@@ -61,8 +61,8 @@ impl LoopDetectionConfig {
 /// Source of a clipboard operation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClipboardSource {
-    /// Operation from RDP client
-    Rdp,
+    /// Operation from a remote clipboard (RDP, VNC, etc.)
+    Remote,
     /// Operation from local clipboard (Portal, X11, etc.)
     Local,
 }
@@ -71,8 +71,8 @@ impl ClipboardSource {
     /// Get the opposite source
     pub fn opposite(self) -> Self {
         match self {
-            Self::Rdp => Self::Local,
-            Self::Local => Self::Rdp,
+            Self::Remote => Self::Local,
+            Self::Local => Self::Remote,
         }
     }
 }
@@ -95,9 +95,9 @@ struct ClipboardOperation {
 /// When clipboard content is copied, the same content often triggers events
 /// on both ends (RDP and local). Without loop detection, this causes:
 ///
-/// 1. User copies on Windows → RDP sends to Linux
-/// 2. Linux clipboard updates → Signal sent to sync back
-/// 3. Windows clipboard updates → RDP sends to Linux again
+/// 1. User copies on remote → Remote sends to local
+/// 2. Local clipboard updates → Signal sent to sync back
+/// 3. Remote clipboard updates → Remote sends to local again
 /// 4. ... infinite loop
 ///
 /// The `LoopDetector` prevents this by:
@@ -105,7 +105,7 @@ struct ClipboardOperation {
 /// 1. **Format hashing**: Hashes the list of formats/MIME types
 /// 2. **Content hashing**: Hashes actual clipboard content (optional)
 /// 3. **Time windowing**: Only detects loops within a configurable time window
-/// 4. **Source tracking**: Distinguishes RDP vs local operations
+/// 4. **Source tracking**: Distinguishes remote vs local operations
 /// 5. **Rate limiting**: Optional throttle to prevent rapid sync storms
 ///
 /// # Example
@@ -118,7 +118,7 @@ struct ClipboardOperation {
 ///
 /// // Record an RDP operation
 /// let formats = vec![ClipboardFormat::unicode_text()];
-/// detector.record_formats(&formats, ClipboardSource::Rdp);
+/// detector.record_formats(&formats, ClipboardSource::Remote);
 ///
 /// // Check if a local operation would cause a loop
 /// if detector.would_cause_loop(&formats) {
@@ -137,7 +137,7 @@ pub struct LoopDetector {
     content_history: VecDeque<ClipboardOperation>,
 
     /// Last sync time for rate limiting (per source)
-    last_sync_rdp: Option<Instant>,
+    last_sync_remote: Option<Instant>,
     last_sync_local: Option<Instant>,
 }
 
@@ -159,7 +159,7 @@ impl LoopDetector {
             config,
             format_history: VecDeque::new(),
             content_history: VecDeque::new(),
-            last_sync_rdp: None,
+            last_sync_remote: None,
             last_sync_local: None,
         }
     }
@@ -216,7 +216,7 @@ impl LoopDetector {
     /// Check if syncing these MIME types would cause a loop
     pub fn would_cause_loop_mime(&self, mime_types: &[String]) -> bool {
         let hash = Self::hash_mime_types(mime_types);
-        self.check_hash_collision(&self.format_history, &hash, ClipboardSource::Rdp)
+        self.check_hash_collision(&self.format_history, &hash, ClipboardSource::Remote)
     }
 
     /// Check if this content would cause a loop
@@ -238,7 +238,7 @@ impl LoopDetector {
     pub fn clear(&mut self) {
         self.format_history.clear();
         self.content_history.clear();
-        self.last_sync_rdp = None;
+        self.last_sync_remote = None;
         self.last_sync_local = None;
     }
 
@@ -257,13 +257,13 @@ impl LoopDetector {
     /// let mut detector = LoopDetector::with_config(config);
     ///
     /// // First sync is not rate limited
-    /// assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+    /// assert!(!detector.is_rate_limited(ClipboardSource::Remote));
     ///
     /// // Record that we synced
-    /// detector.record_sync(ClipboardSource::Rdp);
+    /// detector.record_sync(ClipboardSource::Remote);
     ///
     /// // Immediate second sync would be rate limited
-    /// assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+    /// assert!(detector.is_rate_limited(ClipboardSource::Remote));
     /// ```
     pub fn is_rate_limited(&self, source: ClipboardSource) -> bool {
         let Some(rate_limit_ms) = self.config.rate_limit_ms else {
@@ -271,7 +271,7 @@ impl LoopDetector {
         };
 
         let last_sync = match source {
-            ClipboardSource::Rdp => self.last_sync_rdp,
+            ClipboardSource::Remote => self.last_sync_remote,
             ClipboardSource::Local => self.last_sync_local,
         };
 
@@ -290,7 +290,7 @@ impl LoopDetector {
     pub fn record_sync(&mut self, source: ClipboardSource) {
         let now = Instant::now();
         match source {
-            ClipboardSource::Rdp => self.last_sync_rdp = Some(now),
+            ClipboardSource::Remote => self.last_sync_remote = Some(now),
             ClipboardSource::Local => self.last_sync_local = Some(now),
         }
     }
@@ -437,7 +437,7 @@ mod tests {
         let formats1 = vec![ClipboardFormat::unicode_text()];
         let formats2 = vec![ClipboardFormat::html()];
 
-        detector.record_formats(&formats1, ClipboardSource::Rdp);
+        detector.record_formats(&formats1, ClipboardSource::Remote);
         assert!(!detector.would_cause_loop(&formats2));
     }
 
@@ -447,7 +447,7 @@ mod tests {
 
         let formats = vec![ClipboardFormat::unicode_text()];
 
-        detector.record_formats(&formats, ClipboardSource::Rdp);
+        detector.record_formats(&formats, ClipboardSource::Remote);
         assert!(detector.would_cause_loop(&formats));
     }
 
@@ -466,8 +466,8 @@ mod tests {
         // So this should NOT trigger because we recorded from Local, checking Local
         // Hmm, the check is: op.source == current_source.opposite()
         // would_cause_loop uses ClipboardSource::Local as current_source
-        // So it checks if op.source == Local.opposite() == Rdp
-        // We recorded from Local, so op.source == Local != Rdp
+        // So it checks if op.source == Local.opposite() == Remote
+        // We recorded from Local, so op.source == Local != Remote
         // So this should NOT detect a loop - correct!
         assert!(!detector.would_cause_loop(&formats));
     }
@@ -477,7 +477,7 @@ mod tests {
         let mut detector = LoopDetector::new();
 
         let data = b"Hello, World!";
-        detector.record_content(data, ClipboardSource::Rdp);
+        detector.record_content(data, ClipboardSource::Remote);
 
         assert!(detector.would_cause_content_loop(data, ClipboardSource::Local));
         assert!(!detector.would_cause_content_loop(b"Different", ClipboardSource::Local));
@@ -488,7 +488,7 @@ mod tests {
         let mut detector = LoopDetector::new();
 
         let formats = vec![ClipboardFormat::unicode_text()];
-        detector.record_formats(&formats, ClipboardSource::Rdp);
+        detector.record_formats(&formats, ClipboardSource::Remote);
 
         detector.clear();
 
@@ -510,7 +510,7 @@ mod tests {
         let detector = LoopDetector::new();
 
         // Without rate limiting, should never be rate limited
-        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+        assert!(!detector.is_rate_limited(ClipboardSource::Remote));
         assert!(!detector.is_rate_limited(ClipboardSource::Local));
     }
 
@@ -522,13 +522,13 @@ mod tests {
         let mut detector = LoopDetector::with_config(config);
 
         // First check - not rate limited
-        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+        assert!(!detector.is_rate_limited(ClipboardSource::Remote));
 
         // Record sync
-        detector.record_sync(ClipboardSource::Rdp);
+        detector.record_sync(ClipboardSource::Remote);
 
         // Immediately after - should be rate limited
-        assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+        assert!(detector.is_rate_limited(ClipboardSource::Remote));
 
         // But Local should not be affected
         assert!(!detector.is_rate_limited(ClipboardSource::Local));
@@ -539,11 +539,11 @@ mod tests {
         let config = LoopDetectionConfig::with_rate_limit(200);
         let mut detector = LoopDetector::with_config(config);
 
-        detector.record_sync(ClipboardSource::Rdp);
-        assert!(detector.is_rate_limited(ClipboardSource::Rdp));
+        detector.record_sync(ClipboardSource::Remote);
+        assert!(detector.is_rate_limited(ClipboardSource::Remote));
 
         detector.clear();
-        assert!(!detector.is_rate_limited(ClipboardSource::Rdp));
+        assert!(!detector.is_rate_limited(ClipboardSource::Remote));
     }
 
     #[test]
@@ -554,16 +554,16 @@ mod tests {
         let formats = vec![ClipboardFormat::unicode_text()];
 
         // Initially: not rate limited, no loop
-        assert!(!detector.should_skip_sync(&formats, ClipboardSource::Rdp));
+        assert!(!detector.should_skip_sync(&formats, ClipboardSource::Remote));
 
         // Record from RDP
-        detector.record_formats(&formats, ClipboardSource::Rdp);
-        detector.record_sync(ClipboardSource::Rdp);
+        detector.record_formats(&formats, ClipboardSource::Remote);
+        detector.record_sync(ClipboardSource::Remote);
 
         // Now should skip for Local (loop detection)
         assert!(detector.should_skip_sync(&formats, ClipboardSource::Local));
 
         // And skip for RDP (rate limiting)
-        assert!(detector.should_skip_sync(&formats, ClipboardSource::Rdp));
+        assert!(detector.should_skip_sync(&formats, ClipboardSource::Remote));
     }
 }

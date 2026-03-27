@@ -1,9 +1,9 @@
 //! ClipboardSink trait - abstract clipboard backend interface.
 //!
 //! This trait defines the interface that clipboard backends must implement.
-//! It is protocol-agnostic and uses MIME types for format identification.
+//! It uses MIME types for format identification.
 
-use crate::ClipboardResult;
+use lamco_clipboard_core::ClipboardResult;
 use std::future::Future;
 
 /// Information about a file in the clipboard
@@ -131,23 +131,25 @@ pub trait ClipboardChangeReceiverInner: Send {
     fn try_recv(&mut self) -> Option<ClipboardChange>;
 }
 
-/// Abstract clipboard backend interface.
+/// Abstract clipboard backend interface for RDP clipboard synchronization.
 ///
-/// This trait defines the operations that clipboard backends must implement.
-/// It uses MIME types for format identification - the [`FormatConverter`](crate::FormatConverter)
-/// handles conversion to/from Windows clipboard format IDs.
+/// This trait defines the operations that clipboard backends must implement
+/// to participate in RDP clipboard sync. It uses MIME types for format
+/// identification, with [`lamco_clipboard_core::FormatConverter`] handling
+/// conversion to/from Windows clipboard format IDs.
 ///
 /// # Design Principles
 ///
-/// - **Async by default**: All operations return futures (Portal uses D-Bus, file I/O shouldn't block)
+/// - **Async by default**: All operations return futures
 /// - **MIME-centric**: Uses MIME types, not Windows format IDs
-/// - **File transfer support**: Includes methods for MS-RDPECLIP FileContents protocol
+/// - **File transfer support**: Includes methods for clipboard file transfer
 /// - **Minimal surface**: 7 core methods
 ///
 /// # Example
 ///
 /// ```rust,ignore
-/// use lamco_clipboard_core::{ClipboardSink, ClipboardResult, FileInfo};
+/// use lamco_rdp_clipboard::{ClipboardSink, FileInfo};
+/// use lamco_clipboard_core::ClipboardResult;
 ///
 /// struct MyClipboard { /* ... */ }
 ///
@@ -200,12 +202,12 @@ pub trait ClipboardSink: Send + Sync {
 
     /// Get the list of files in the clipboard.
     ///
-    /// This is used for file transfer support (CF_HDROP / FileContents).
+    /// This is used for clipboard file transfer support.
     fn get_file_list(&self) -> impl Future<Output = ClipboardResult<Vec<FileInfo>>> + Send;
 
     /// Read a chunk of a file from the clipboard.
     ///
-    /// This is used for chunked file transfer (MS-RDPECLIP FileContents).
+    /// This is used for chunked clipboard file transfer.
     ///
     /// # Arguments
     ///

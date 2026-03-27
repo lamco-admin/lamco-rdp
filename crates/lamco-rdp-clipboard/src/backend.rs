@@ -17,7 +17,7 @@ use crate::event::{ClipboardEvent, ClipboardEventSender};
 /// blocking the RDP message loop. Use [`ClipboardEventReceiver`]
 /// to process events in an async context.
 ///
-/// [`ClipboardSink`]: lamco_clipboard_core::ClipboardSink
+/// [`ClipboardSink`]: crate::ClipboardSink
 /// [`ClipboardEventReceiver`]: crate::ClipboardEventReceiver
 ///
 /// # Example

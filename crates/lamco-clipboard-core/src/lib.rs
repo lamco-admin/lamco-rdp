@@ -1,22 +1,22 @@
 //! # lamco-clipboard-core
 //!
-//! Protocol-agnostic clipboard utilities for Rust.
+//! Clipboard format conversion and synchronization utilities for Rust.
 //!
-//! This crate provides core clipboard functionality that can be used with any
-//! clipboard backend (Portal, X11, headless, etc.):
+//! This crate provides core clipboard infrastructure that works independently
+//! of any specific remote desktop protocol:
 //!
-//! - **[`ClipboardSink`] trait** - Abstract clipboard backend interface
-//! - **[`FormatConverter`]** - MIME ↔ Windows clipboard format conversion
+//! - **[`FormatConverter`]** - MIME type and Windows clipboard format conversion
 //! - **[`LoopDetector`]** - Prevent clipboard sync loops with content hashing
 //! - **[`TransferEngine`]** - Chunked transfer for large clipboard data
+//! - **[`sanitize`]** - Cross-platform filename sanitization and file URI parsing
 //!
 //! ## Quick Start
 //!
 //! ```rust
-//! use lamco_clipboard_core::{ClipboardSink, FormatConverter, LoopDetector};
+//! use lamco_clipboard_core::{FormatConverter, LoopDetector};
 //! use lamco_clipboard_core::formats::{ClipboardFormat, mime_to_rdp_formats};
 //!
-//! // Convert MIME types to RDP formats
+//! // Convert MIME types to clipboard formats
 //! let formats = mime_to_rdp_formats(&["text/plain", "text/html"]);
 //!
 //! // Check for clipboard loops
@@ -28,19 +28,18 @@
 //!
 //! ## Feature Flags
 //!
-//! - `image` - Enable image format conversion (PNG, JPEG, BMP ↔ DIB)
+//! - `image` - Enable image format conversion (PNG, JPEG, BMP to Windows DIB)
 //!
 //! ## Architecture
 //!
-//! The [`ClipboardSink`] trait provides an async interface for clipboard operations.
-//! Implementations handle the actual clipboard access (Portal D-Bus, X11, etc.)
-//! while this crate handles format conversion and loop detection.
+//! This crate handles format conversion, loop detection, and transfer mechanics.
+//! For the clipboard backend trait (`ClipboardSink`) and RDP-specific file
+//! transfer types, see [`lamco-rdp-clipboard`](https://crates.io/crates/lamco-rdp-clipboard).
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
 
 mod error;
-mod sink;
 mod transfer;
 
 pub mod formats;
@@ -51,11 +50,8 @@ pub mod sanitize;
 pub mod image;
 
 pub use error::{ClipboardError, ClipboardResult};
-pub use formats::{
-    ClipboardFormat, FileDescriptor, FileDescriptorFlags, FormatConverter, build_file_group_descriptor_w,
-};
+pub use formats::{ClipboardFormat, FormatConverter};
 pub use loop_detector::{ClipboardSource, LoopDetectionConfig, LoopDetector};
-pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};
 pub use transfer::{
     DEFAULT_CHUNK_SIZE, DEFAULT_MAX_SIZE, DEFAULT_TIMEOUT_MS, TransferConfig, TransferEngine, TransferProgress,
     TransferState,
@@ -64,5 +60,5 @@ pub use transfer::{
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::formats::{mime_to_rdp_formats, rdp_format_to_mime};
-    pub use crate::{ClipboardChange, ClipboardError, ClipboardResult, ClipboardSink, FormatConverter, LoopDetector};
+    pub use crate::{ClipboardError, ClipboardResult, FormatConverter, LoopDetector};
 }

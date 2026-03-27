@@ -46,5 +46,5 @@ pub mod prelude {
     pub use lamco_rdp_input::{InputTranslator, KeyModifiers, LinuxInputEvent, MouseButton, RdpInputEvent};
 
     #[cfg(feature = "clipboard-core")]
-    pub use lamco_clipboard_core::{ClipboardSink, FormatConverter, LoopDetector};
+    pub use lamco_clipboard_core::{FormatConverter, LoopDetector};
 }
