@@ -220,20 +220,14 @@ impl KeyboardHandler {
                     self.modifiers.meta = self.is_key_pressed(KEY_LEFTMETA) || self.is_key_pressed(KEY_RIGHTMETA);
                 }
             }
-            KEY_CAPSLOCK => {
-                if pressed {
-                    self.modifiers.caps_lock = !self.modifiers.caps_lock;
-                }
+            KEY_CAPSLOCK if pressed => {
+                self.modifiers.caps_lock = !self.modifiers.caps_lock;
             }
-            KEY_NUMLOCK => {
-                if pressed {
-                    self.modifiers.num_lock = !self.modifiers.num_lock;
-                }
+            KEY_NUMLOCK if pressed => {
+                self.modifiers.num_lock = !self.modifiers.num_lock;
             }
-            KEY_SCROLLLOCK => {
-                if pressed {
-                    self.modifiers.scroll_lock = !self.modifiers.scroll_lock;
-                }
+            KEY_SCROLLLOCK if pressed => {
+                self.modifiers.scroll_lock = !self.modifiers.scroll_lock;
             }
             _ => {}
         }
