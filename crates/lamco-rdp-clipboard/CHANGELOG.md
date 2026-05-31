@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-31
+
+### Changed
+- **BREAKING:** `ClipboardEvent::FileContentsRequest.index` is now `i32` (was `u32`),
+  matching the signed `lindex` field in `ironrdp-cliprdr` 0.6 per [MS-RDPECLIP] 2.2.5.3.
+  Negative indices are rejected during decode.
+- Updated `ironrdp-cliprdr` to 0.6 and `ironrdp-core` to 0.2.
+
+## [0.3.0] - 2026-03-27
+
+### Changed
+- Moved RDP-specific clipboard types out of `lamco-clipboard-core` into this crate.
+
+## [0.2.3] - 2026-03-15
+
+### Changed
+- Migrated to Rust edition 2024 (MSRV 1.85).
+
 ## [0.2.2] - 2025-12-24
 
 ### Added

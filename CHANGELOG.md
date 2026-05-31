@@ -5,6 +5,19 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-31
+
+### Changed
+- **BREAKING:** lamco-rdp-clipboard 0.4.0 — `FileContentsRequest.index` is now `i32`
+  (signed `lindex` per [MS-RDPECLIP] 2.2.5.3); requires `ironrdp-cliprdr` 0.6 and
+  `ironrdp-core` 0.2.
+
+## [0.5.3] - 2026-03-27
+
+### Changed
+- lamco-rdp-clipboard 0.3.0: RDP-specific types moved out of lamco-clipboard-core.
+- Updated sub-crate dependency versions.
+
 ## [0.5.2] - 2026-03-15
 
 ### Changed
