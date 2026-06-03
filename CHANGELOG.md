@@ -5,6 +5,23 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-06-03
+
+### Changed
+- Relicensed to Lamco Development LLC; removed `authors` metadata.
+- Workspace MSRV raised to 1.89 to match the IronRDP cliprdr/core requirement.
+- CI hardened: clippy `--all-targets` in both default and all-features modes,
+  cargo-deny, a 1.89 MSRV gate, and a fuzz-smoke job. Added THIRD_PARTY_NOTICES.
+- Dependency hygiene: dropped the unused `percent-encoding`; `bytes` and `image`
+  now inherit their versions from the workspace.
+- Sub-crate versions: lamco-clipboard-core 0.6.1, lamco-rdp-clipboard 0.4.1,
+  lamco-rdp-input 0.1.5.
+
+### Fixed
+- lamco-clipboard-core 0.6.1: DIB image parsing no longer panics on oversized
+  header dimensions (an integer-overflow guard, found by fuzzing). Added
+  FILEDESCRIPTORW parser tests and clipboard fuzz targets.
+
 ## [0.6.1] - 2026-05-31
 
 ### Changed

@@ -247,13 +247,13 @@ impl TransferEngine {
     /// Receive a chunk of data
     pub fn receive_chunk(&mut self, chunk: Vec<u8>) -> ClipboardResult<()> {
         // Check timeout
-        if let Some(started) = self.started_at {
-            if started.elapsed() > Duration::from_millis(self.config.timeout_ms) {
-                if let Some(ref mut progress) = self.progress {
-                    progress.state = TransferState::Failed;
-                }
-                return Err(ClipboardError::TransferTimeout(self.config.timeout_ms));
+        if let Some(started) = self.started_at
+            && started.elapsed() > Duration::from_millis(self.config.timeout_ms)
+        {
+            if let Some(ref mut progress) = self.progress {
+                progress.state = TransferState::Failed;
             }
+            return Err(ClipboardError::TransferTimeout(self.config.timeout_ms));
         }
 
         // Check if we have an active transfer
@@ -312,14 +312,14 @@ impl TransferEngine {
         }
 
         // Verify integrity if hash was provided
-        if self.config.verify_integrity {
-            if let Some(ref expected) = self.expected_hash {
-                let actual = self.compute_hash(&data);
-                if actual != *expected {
-                    return Err(ClipboardError::FormatConversion(
-                        "integrity check failed: hash mismatch".to_string(),
-                    ));
-                }
+        if self.config.verify_integrity
+            && let Some(ref expected) = self.expected_hash
+        {
+            let actual = self.compute_hash(&data);
+            if actual != *expected {
+                return Err(ClipboardError::FormatConversion(
+                    "integrity check failed: hash mismatch".to_string(),
+                ));
             }
         }
 
@@ -459,7 +459,7 @@ mod tests {
         };
         let mut engine = TransferEngine::with_config(config);
 
-        let result = engine.prepare_send(&vec![0u8; 200]);
+        let result = engine.prepare_send(&[0u8; 200]);
         assert!(matches!(result, Err(ClipboardError::DataSizeExceeded { .. })));
     }
 }

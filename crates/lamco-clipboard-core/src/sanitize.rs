@@ -307,42 +307,42 @@ fn percent_decode(input: &str) -> String {
         if c == '%' {
             // Try to read two hex digits
             let hex: String = chars.by_ref().take(2).collect();
-            if hex.len() == 2 {
-                if let Ok(byte) = u8::from_str_radix(&hex, 16) {
-                    // For multi-byte UTF-8, we need to collect bytes
-                    // Simple case: ASCII character
-                    if byte < 128 {
-                        result.push(byte as char);
-                        continue;
-                    }
-                    // For non-ASCII, decode as UTF-8 byte sequence
-                    let mut bytes = vec![byte];
-                    while chars.peek() == Some(&'%') {
-                        chars.next(); // consume '%'
-                        let hex2: String = chars.by_ref().take(2).collect();
-                        if hex2.len() == 2 {
-                            if let Ok(b) = u8::from_str_radix(&hex2, 16) {
-                                bytes.push(b);
-                                // Check if we have a complete UTF-8 sequence
-                                if let Ok(s) = std::str::from_utf8(&bytes) {
-                                    result.push_str(s);
-                                    bytes.clear();
-                                    break;
-                                }
-                            } else {
-                                // Invalid hex, put back what we consumed
-                                result.push('%');
-                                result.push_str(&hex2);
-                                break;
-                            }
-                        }
-                    }
-                    if !bytes.is_empty() {
-                        // Incomplete UTF-8 sequence, use replacement char
-                        result.push('\u{FFFD}');
-                    }
+            if hex.len() == 2
+                && let Ok(byte) = u8::from_str_radix(&hex, 16)
+            {
+                // For multi-byte UTF-8, we need to collect bytes
+                // Simple case: ASCII character
+                if byte < 128 {
+                    result.push(byte as char);
                     continue;
                 }
+                // For non-ASCII, decode as UTF-8 byte sequence
+                let mut bytes = vec![byte];
+                while chars.peek() == Some(&'%') {
+                    chars.next(); // consume '%'
+                    let hex2: String = chars.by_ref().take(2).collect();
+                    if hex2.len() == 2 {
+                        if let Ok(b) = u8::from_str_radix(&hex2, 16) {
+                            bytes.push(b);
+                            // Check if we have a complete UTF-8 sequence
+                            if let Ok(s) = std::str::from_utf8(&bytes) {
+                                result.push_str(s);
+                                bytes.clear();
+                                break;
+                            }
+                        } else {
+                            // Invalid hex, put back what we consumed
+                            result.push('%');
+                            result.push_str(&hex2);
+                            break;
+                        }
+                    }
+                }
+                if !bytes.is_empty() {
+                    // Incomplete UTF-8 sequence, use replacement char
+                    result.push('\u{FFFD}');
+                }
+                continue;
             }
             // Invalid percent encoding, keep literal
             result.push('%');

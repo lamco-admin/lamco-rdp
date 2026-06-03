@@ -284,7 +284,7 @@ impl FormatConverter {
             });
         }
 
-        if data.len() % 2 != 0 {
+        if !data.len().is_multiple_of(2) {
             return Err(ClipboardError::InvalidUtf16);
         }
 
@@ -595,10 +595,10 @@ impl FormatConverter {
                 }
                 '}' => {
                     // If we were skipping and we're back to the skip start depth, stop skipping
-                    if let Some(sd) = skip_depth {
-                        if group_depth == sd {
-                            skip_depth = None;
-                        }
+                    if let Some(sd) = skip_depth
+                        && group_depth == sd
+                    {
+                        skip_depth = None;
                     }
                     group_depth -= 1;
                 }

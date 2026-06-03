@@ -1,12 +1,11 @@
 [package]
 name = "lamco-clipboard-core"
-version = "0.6.0"
+version = "0.6.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-authors.workspace = true
 description = "Clipboard format conversion and synchronization utilities - MIME/Windows format mapping, loop detection, chunked transfer engine"
 documentation = "https://docs.rs/lamco-clipboard-core"
 keywords = ["clipboard", "format", "conversion", "sync", "wayland"]
@@ -34,7 +33,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 
 # Optional dependencies for image conversion
-image = { version = "0.25", optional = true, default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
-bytes = { version = "1.5", optional = true }
+image = { workspace = true, optional = true, features = ["png", "jpeg", "gif", "bmp"] }
+bytes = { workspace = true, optional = true }
 
 [dev-dependencies]

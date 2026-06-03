@@ -1,12 +1,11 @@
 [package]
 name = "lamco-rdp-input"
-version = "0.1.4"
+version = "0.1.5"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-authors.workspace = true
 description = "RDP input event translation - keyboard scancodes to evdev keycodes, mouse handling, multi-monitor coordinates, by Lamco Development"
 documentation = "https://docs.rs/lamco-rdp-input"
 keywords = ["rdp", "input", "keyboard", "scancode", "evdev"]

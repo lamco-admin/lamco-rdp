@@ -429,8 +429,8 @@ mod tests {
 
         // Test corner cases
         let (x, y) = transformer.rdp_to_stream(0, 0).unwrap();
-        assert!(x >= 0.0 && x <= 1.0);
-        assert!(y >= 0.0 && y <= 1.0);
+        assert!((0.0..=1.0).contains(&x));
+        assert!((0.0..=1.0).contains(&y));
 
         let (x, y) = transformer.rdp_to_stream(1919, 1079).unwrap();
         assert!(x <= 1920.0);

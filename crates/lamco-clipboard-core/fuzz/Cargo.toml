@@ -1,0 +1,42 @@
+[package]
+name = "lamco-clipboard-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.lamco-clipboard-core]
+path = ".."
+features = ["image"]
+
+# Keep this crate out of the parent workspace (cargo-fuzz convention).
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "sanitize"
+path = "fuzz_targets/sanitize.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "format_decode"
+path = "fuzz_targets/format_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dib"
+path = "fuzz_targets/dib.rs"
+test = false
+doc = false
+bench = false

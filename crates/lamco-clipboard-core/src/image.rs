@@ -336,9 +336,19 @@ fn parse_dib_to_image(dib_data: &[u8]) -> ClipboardResult<DynamicImage> {
     Ok(image)
 }
 
+/// Validate `width * height * bytes_per_pixel` for a header whose dimensions are
+/// attacker-controlled, returning an error (never a panic) if the product would
+/// overflow `usize`.
+fn checked_pixel_len(width: u32, height: u32, bytes_per_pixel: usize) -> ClipboardResult<usize> {
+    (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|wh| wh.checked_mul(bytes_per_pixel))
+        .ok_or_else(|| ClipboardError::ImageDecode("DIB dimensions overflow".to_string()))
+}
+
 /// Convert 32-bit BGRA DIB to RGBA image.
 fn convert_32bit_dib(pixel_data: &[u8], width: u32, height: u32, top_down: bool) -> ClipboardResult<DynamicImage> {
-    let expected_size = (width as usize) * (height as usize) * 4;
+    let expected_size = checked_pixel_len(width, height, 4)?;
     if pixel_data.len() < expected_size {
         return Err(ClipboardError::ImageDecode(format!(
             "Insufficient pixel data: {} < {}",
@@ -371,9 +381,15 @@ fn convert_32bit_dib(pixel_data: &[u8], width: u32, height: u32, top_down: bool)
 
 /// Convert 24-bit BGR DIB to RGB image.
 fn convert_24bit_dib(pixel_data: &[u8], width: u32, height: u32, top_down: bool) -> ClipboardResult<DynamicImage> {
-    // 24-bit DIB rows are aligned to 4-byte boundaries
-    let row_size = (width * 3).div_ceil(4) * 4;
-    let expected_size = (row_size as usize) * (height as usize);
+    // 24-bit DIB rows are padded to a 4-byte boundary. Width is attacker-
+    // controlled, so the stride and buffer sizes use checked arithmetic.
+    let row_size = (width as usize)
+        .checked_mul(3)
+        .map(|bytes| bytes.div_ceil(4) * 4)
+        .ok_or_else(|| ClipboardError::ImageDecode("DIB row size overflow".to_string()))?;
+    let expected_size = row_size
+        .checked_mul(height as usize)
+        .ok_or_else(|| ClipboardError::ImageDecode("DIB pixel size overflow".to_string()))?;
 
     if pixel_data.len() < expected_size {
         return Err(ClipboardError::ImageDecode(format!(
@@ -383,11 +399,11 @@ fn convert_24bit_dib(pixel_data: &[u8], width: u32, height: u32, top_down: bool)
         )));
     }
 
-    let mut rgb_data = Vec::with_capacity((width as usize) * (height as usize) * 3);
+    let mut rgb_data = Vec::with_capacity(checked_pixel_len(width, height, 3)?);
 
     for y in 0..height {
         let row_y = if top_down { y } else { height - 1 - y };
-        let row_offset = (row_y as usize) * (row_size as usize);
+        let row_offset = (row_y as usize) * row_size;
 
         for x in 0..width {
             let pixel_offset = row_offset + (x as usize) * 3;
@@ -608,7 +624,7 @@ fn convert_32bit_dibv5(
     blue_mask: u32,
     alpha_mask: u32,
 ) -> ClipboardResult<DynamicImage> {
-    let expected_size = (width as usize) * (height as usize) * 4;
+    let expected_size = checked_pixel_len(width, height, 4)?;
     if pixel_data.len() < expected_size {
         return Err(ClipboardError::ImageDecode(format!(
             "Insufficient DIBV5 pixel data: {} < {}",
@@ -916,5 +932,27 @@ mod tests {
         assert_eq!(rgba.get_pixel(1, 0), &image::Rgba([0, 255, 0, 128]));
         assert_eq!(rgba.get_pixel(0, 1), &image::Rgba([0, 0, 255, 64]));
         assert_eq!(rgba.get_pixel(1, 1), &image::Rgba([128, 128, 128, 0]));
+    }
+
+    /// Minimal BITMAPINFOHEADER DIB with the given dimensions and bit depth.
+    fn dib_header(width: i32, height: i32, bit_count: u16, pixel_bytes: usize) -> Vec<u8> {
+        let mut d = vec![0u8; 40 + pixel_bytes];
+        d[0..4].copy_from_slice(&40u32.to_le_bytes()); // biSize
+        d[4..8].copy_from_slice(&width.to_le_bytes());
+        d[8..12].copy_from_slice(&height.to_le_bytes());
+        d[14..16].copy_from_slice(&bit_count.to_le_bytes());
+        d
+    }
+
+    #[test]
+    fn dib_oversized_dimensions_error_without_panic() {
+        // Regression (found by fuzzing): `width * 3` overflowed u32 before the
+        // checked-size guard. Headers with absurd dimensions must error, not panic.
+        for bits in [24u16, 32] {
+            let dib = dib_header(i32::MAX, i32::MAX, bits, 16);
+            assert!(dib_to_png(&dib).is_err());
+        }
+        // Reading dimensions alone never allocates, so it must also stay calm.
+        let _ = dib_dimensions(&dib_header(i32::MAX, i32::MAX, 24, 16));
     }
 }

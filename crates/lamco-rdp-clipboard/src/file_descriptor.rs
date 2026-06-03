@@ -139,7 +139,7 @@ impl FileDescriptor {
 
     /// Parse UTF-16LE filename from raw bytes
     fn parse_utf16_filename(data: &[u8]) -> ClipboardResult<String> {
-        if data.len() % 2 != 0 {
+        if !data.len().is_multiple_of(2) {
             return Err(ClipboardError::InvalidUtf16);
         }
 
@@ -266,4 +266,164 @@ impl FileDescriptor {
 /// This is a convenience function that calls FileDescriptor::build_list.
 pub fn build_file_group_descriptor_w(paths: &[std::path::PathBuf]) -> ClipboardResult<Vec<u8>> {
     FileDescriptor::build_list(paths)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    /// Assemble a raw 592-byte FILEDESCRIPTORW with the given flags and name.
+    fn raw_descriptor(flags: u32, name: &str) -> Vec<u8> {
+        let mut data = vec![0u8; 592];
+        data[0..4].copy_from_slice(&flags.to_le_bytes());
+        for (i, c) in name.encode_utf16().enumerate() {
+            let off = 72 + i * 2;
+            data[off..off + 2].copy_from_slice(&c.to_le_bytes());
+        }
+        data
+    }
+
+    #[test]
+    fn parse_rejects_short_input() {
+        assert!(FileDescriptor::parse(&[0u8; 591]).is_err());
+        assert!(FileDescriptor::parse(&[]).is_err());
+    }
+
+    #[test]
+    fn parse_minimal_no_flags_has_no_optional_fields() {
+        let fd = FileDescriptor::parse(&raw_descriptor(0, "")).unwrap();
+        assert_eq!(fd.name, "");
+        assert!(fd.size.is_none());
+        assert!(fd.creation_time.is_none());
+        assert!(fd.access_time.is_none());
+        assert!(fd.write_time.is_none());
+    }
+
+    #[test]
+    fn parse_reads_utf16_name() {
+        let fd = FileDescriptor::parse(&raw_descriptor(0, "report.pdf")).unwrap();
+        assert_eq!(fd.name, "report.pdf");
+    }
+
+    #[test]
+    fn parse_name_stops_at_null_terminator() {
+        let mut data = raw_descriptor(0, "ab");
+        // null at char index 2, then a stray 'X' that must be ignored.
+        data[76..78].copy_from_slice(&0u16.to_le_bytes());
+        data[78..80].copy_from_slice(&(u16::from(b'X')).to_le_bytes());
+        let fd = FileDescriptor::parse(&data).unwrap();
+        assert_eq!(fd.name, "ab");
+    }
+
+    #[test]
+    fn parse_size_flag_combines_high_and_low_dwords() {
+        let mut data = raw_descriptor(FileDescriptorFlags::FILESIZE, "f");
+        data[64..68].copy_from_slice(&1u32.to_le_bytes()); // high dword
+        data[68..72].copy_from_slice(&5u32.to_le_bytes()); // low dword
+        let fd = FileDescriptor::parse(&data).unwrap();
+        assert_eq!(fd.size, Some((1u64 << 32) | 5));
+    }
+
+    #[test]
+    fn parse_time_flags_gate_their_fields() {
+        let flags = FileDescriptorFlags::CREATETIME | FileDescriptorFlags::ACCESSTIME | FileDescriptorFlags::WRITESTIME;
+        let mut data = raw_descriptor(flags, "f");
+        data[40..48].copy_from_slice(&111u64.to_le_bytes());
+        data[48..56].copy_from_slice(&222u64.to_le_bytes());
+        data[56..64].copy_from_slice(&333u64.to_le_bytes());
+        let fd = FileDescriptor::parse(&data).unwrap();
+        assert_eq!(fd.creation_time, Some(111));
+        assert_eq!(fd.access_time, Some(222));
+        assert_eq!(fd.write_time, Some(333));
+    }
+
+    #[test]
+    fn parse_utf16_filename_rejects_odd_length() {
+        assert!(matches!(
+            FileDescriptor::parse_utf16_filename(&[0x41]),
+            Err(ClipboardError::InvalidUtf16)
+        ));
+    }
+
+    #[test]
+    fn parse_utf16_filename_rejects_lone_surrogate() {
+        // 0xD800 is a high surrogate with no following low surrogate.
+        assert!(matches!(
+            FileDescriptor::parse_utf16_filename(&0xD800u16.to_le_bytes()),
+            Err(ClipboardError::InvalidUtf16)
+        ));
+    }
+
+    #[test]
+    fn parse_list_empty_count_yields_no_descriptors() {
+        assert!(FileDescriptor::parse_list(&[0u8; 4]).unwrap().is_empty());
+    }
+
+    #[test]
+    fn parse_list_rejects_truncated_count_header() {
+        assert!(FileDescriptor::parse_list(&[0u8; 3]).is_err());
+    }
+
+    #[test]
+    fn parse_list_rejects_count_exceeding_data() {
+        let mut data = vec![0u8; 4];
+        data[0..4].copy_from_slice(&5u32.to_le_bytes()); // claims 5 files, no bodies
+        assert!(FileDescriptor::parse_list(&data).is_err());
+    }
+
+    #[test]
+    fn parse_list_huge_count_errors_without_allocating() {
+        // Attacker-controlled count must hit the expected-size guard before the
+        // Vec::with_capacity, so this returns Err rather than OOM-aborting.
+        let mut data = vec![0u8; 4];
+        data[0..4].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(FileDescriptor::parse_list(&data).is_err());
+    }
+
+    #[test]
+    fn parse_list_reads_multiple_descriptors() {
+        let mut data = 2u32.to_le_bytes().to_vec();
+        data.extend_from_slice(&raw_descriptor(0, "first.txt"));
+        data.extend_from_slice(&raw_descriptor(0, "second.txt"));
+        let list = FileDescriptor::parse_list(&data).unwrap();
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].name, "first.txt");
+        assert_eq!(list[1].name, "second.txt");
+    }
+
+    #[test]
+    fn flags_has_flag_detects_set_bits() {
+        let f = FileDescriptorFlags::from_raw(FileDescriptorFlags::FILESIZE | FileDescriptorFlags::CREATETIME);
+        assert!(f.has_flag(FileDescriptorFlags::FILESIZE));
+        assert!(f.has_flag(FileDescriptorFlags::CREATETIME));
+        assert!(!f.has_flag(FileDescriptorFlags::ACCESSTIME));
+    }
+
+    #[test]
+    fn build_list_empty_is_just_a_zero_count() {
+        assert_eq!(FileDescriptor::build_list(&[]).unwrap(), vec![0u8; 4]);
+        assert_eq!(build_file_group_descriptor_w(&[]).unwrap(), vec![0u8; 4]);
+    }
+
+    #[test]
+    fn build_then_parse_roundtrips_a_real_file() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("lamco_fd_roundtrip_{}.txt", std::process::id()));
+        std::fs::File::create(&path)
+            .unwrap()
+            .write_all(b"hello clipboard")
+            .unwrap();
+
+        let built = FileDescriptor::build(&path).unwrap();
+        assert_eq!(built.len(), 592);
+
+        let fd = FileDescriptor::parse(&built).unwrap();
+        assert!(fd.name.contains("lamco_fd_roundtrip"));
+        assert!(fd.name.ends_with(".txt"));
+        assert_eq!(fd.size, Some(15)); // "hello clipboard"
+        assert!(fd.flags.has_flag(FileDescriptorFlags::FILESIZE));
+
+        std::fs::remove_file(&path).ok();
+    }
 }
