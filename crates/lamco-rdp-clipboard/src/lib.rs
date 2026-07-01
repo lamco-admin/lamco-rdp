@@ -57,7 +57,7 @@ mod sink;
 
 pub use backend::RdpCliprdrBackend;
 pub use error::{ClipboardRdpError, ClipboardRdpResult};
-pub use event::{ClipboardEvent, ClipboardEventReceiver, ClipboardEventSender};
+pub use event::{ClipboardEvent, ClipboardEventReceiver, ClipboardEventSender, RemoteFileMetadata};
 pub use factory::RdpCliprdrFactory;
 pub use file_descriptor::{FileDescriptor, FileDescriptorFlags, build_file_group_descriptor_w};
 pub use sink::{ClipboardChange, ClipboardChangeReceiver, ClipboardChangeReceiverInner, ClipboardSink, FileInfo};

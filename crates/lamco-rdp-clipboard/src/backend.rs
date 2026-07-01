@@ -5,7 +5,7 @@
 use ironrdp_cliprdr::backend::CliprdrBackend;
 use ironrdp_cliprdr::pdu::{
     ClipboardFormat as RdpClipboardFormat, ClipboardGeneralCapabilityFlags, FileContentsRequest, FileContentsResponse,
-    FormatDataRequest, FormatDataResponse, LockDataId,
+    FileDescriptor, FormatDataRequest, FormatDataResponse, LockDataId,
 };
 use ironrdp_core::AsAny;
 
@@ -190,6 +190,16 @@ impl CliprdrBackend for RdpCliprdrBackend {
         );
         self.event_sender
             .send(ClipboardEvent::file_contents_response(&response));
+    }
+
+    fn on_remote_file_list(&mut self, files: &[FileDescriptor], clip_data_id: Option<u32>) {
+        tracing::debug!(
+            "Remote file list: {} file(s), clip_data_id={:?}",
+            files.len(),
+            clip_data_id
+        );
+        self.event_sender
+            .send(ClipboardEvent::remote_file_list(files, clip_data_id));
     }
 
     fn on_lock(&mut self, data_id: LockDataId) {

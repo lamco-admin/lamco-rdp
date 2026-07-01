@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-06-30
+
+### Added
+- `CliprdrBackend::on_remote_file_list` is now implemented, surfacing the remote
+  `FileGroupDescriptorW` file list (received in response to a paste request) as a
+  new `ClipboardEvent::RemoteFileList { files, clip_data_id }`. Each file is an
+  owned `RemoteFileMetadata` (name, size, relative path). This lets consumers
+  pre-populate a local clipboard source with file URIs up front, which is required
+  by eager/synchronous clipboards such as Wayland `ext-data-control` where data
+  must be present before the compositor's `send` request rather than fetched on
+  demand.
+
 ## [0.4.0] - 2026-05-31
 
 ### Changed
