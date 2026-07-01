@@ -18,7 +18,7 @@ homepage = "https://lamco.ai"
 # Internal crates
 lamco-rdp-input = { version = "0.1.5", path = "crates/lamco-rdp-input" }
 lamco-clipboard-core = { version = "0.6.1", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.4.1", path = "crates/lamco-rdp-clipboard" }
+lamco-rdp-clipboard = { version = "0.4.2", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"
@@ -48,12 +48,12 @@ ironrdp-core = "0.2"
 
 [package]
 name = "lamco-rdp"
-version = "0.6.2"
+version = "0.6.3"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-homepage.workspace = true
+homepage = "https://lamco.ai/open-source/lamco-rdp/"
 description = "RDP protocol implementations and IronRDP extensions for Rust, by Lamco Development"
 keywords = ["rdp", "remote-desktop", "input", "clipboard", "ironrdp"]
 categories = ["network-programming", "encoding", "os"]

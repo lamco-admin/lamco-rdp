@@ -66,7 +66,7 @@ This workspace is part of the Lamco RDP project. Lamco develops RDP server solut
 **Open source foundation:** Protocol components, input translation, clipboard utilities
 **Commercial products:** Lamco RDP Portal Server, Lamco VDI
 
-Learn more: [lamco.ai](https://lamco.ai)
+Learn more: [lamco.ai/open-source/lamco-rdp](https://lamco.ai/open-source/lamco-rdp/) — by Lamco Development LLC
 
 ## License
 

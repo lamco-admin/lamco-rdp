@@ -5,6 +5,13 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-06-30
+
+### Changed
+- Bumped bundled `lamco-rdp-clipboard` to 0.4.2 (adds `on_remote_file_list` →
+  `ClipboardEvent::RemoteFileList` for eager clipboard file-list consumers).
+- Refreshed dependencies; `bytes` ≥ 1.12.0 (RUSTSEC-2026-0007).
+
 ## [0.6.2] - 2026-06-03
 
 ### Changed

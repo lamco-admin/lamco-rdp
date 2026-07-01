@@ -1,11 +1,11 @@
 [package]
 name = "lamco-rdp-clipboard"
-version = "0.4.1"
+version = "0.4.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-homepage.workspace = true
+homepage = "https://lamco.ai/open-source/lamco-rdp/clipboard-rdp/"
 description = "IronRDP clipboard integration - CliprdrBackend implementation for RDP clipboard sync"
 documentation = "https://docs.rs/lamco-rdp-clipboard"
 keywords = ["rdp", "clipboard", "ironrdp", "cliprdr"]

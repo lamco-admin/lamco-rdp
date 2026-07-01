@@ -4,6 +4,8 @@
 [![Documentation](https://docs.rs/lamco-rdp-clipboard/badge.svg)](https://docs.rs/lamco-rdp-clipboard)
 [![License](https://img.shields.io/crates/l/lamco-rdp-clipboard.svg)](LICENSE-MIT)
 
+**Website:** [lamco.ai/open-source/lamco-rdp/clipboard-rdp](https://lamco.ai/open-source/lamco-rdp/clipboard-rdp/) · **Docs:** [docs.rs/lamco-rdp-clipboard](https://docs.rs/lamco-rdp-clipboard) · part of [Lamco RDP](https://lamco.ai/open-source/lamco-rdp/) by Lamco Development LLC
+
 IronRDP clipboard integration for Rust.
 
 This crate provides the IronRDP `CliprdrBackend` implementation for RDP clipboard synchronization. It bridges between IronRDP's CLIPRDR static virtual channel and the protocol-agnostic `ClipboardSink` trait from `lamco-clipboard-core`.
