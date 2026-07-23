@@ -5,6 +5,14 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-23
+
+### Changed
+- Bumped bundled `lamco-rdp-clipboard` to 0.5.0 — `ironrdp-cliprdr` 0.6 → 0.7
+  (transitively `ironrdp-pdu` 0.9 / `ironrdp-svc` 0.8) to track the current
+  upstream IronRDP release. No source change; breaking for consumers of the
+  re-exported clipboard types, which must move to `ironrdp-cliprdr` 0.7.
+
 ## [0.6.3] - 2026-06-30
 
 ### Changed

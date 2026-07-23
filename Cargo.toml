@@ -18,7 +18,7 @@ homepage = "https://lamco.ai"
 # Internal crates
 lamco-rdp-input = { version = "0.1.5", path = "crates/lamco-rdp-input" }
 lamco-clipboard-core = { version = "0.6.1", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.4.2", path = "crates/lamco-rdp-clipboard" }
+lamco-rdp-clipboard = { version = "0.5.0", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"
@@ -39,7 +39,7 @@ image = { version = "0.25", default-features = false }
 # IronRDP — published versions on crates.io. ironrdp-cliprdr 0.6.0 carries the
 # signed-lindex FileContentsRequest fix (our PR #1166); ironrdp-core 0.2.0 is
 # the matching common-types release.
-ironrdp-cliprdr = "0.6"
+ironrdp-cliprdr = "0.7"
 ironrdp-core = "0.2"
 
 # =============================================================================
@@ -48,7 +48,7 @@ ironrdp-core = "0.2"
 
 [package]
 name = "lamco-rdp"
-version = "0.6.3"
+version = "0.7.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-23
+
+### Changed
+- **Bump `ironrdp-cliprdr` 0.6 → 0.7** (transitively `ironrdp-pdu` 0.9,
+  `ironrdp-svc` 0.8, `ironrdp-core` 0.2.1), tracking the current upstream IronRDP
+  release. No source change — the crate compiles unmodified against 0.7. The
+  version bump is required because `ironrdp-cliprdr` types appear in this crate's
+  public API (the `CliprdrBackend` impl and re-exported request/response types),
+  so consumers must move to 0.7 in lockstep. This restores single-instance
+  alignment for consumers (e.g. lamco-rdp-server) that `[patch]` `ironrdp-cliprdr`
+  to a git fork now at 0.7, which otherwise pulled a second 0.6 copy and broke
+  the `CliprdrBackend` trait match (the patch-diamond).
+
 ## [0.4.2] - 2026-06-30
 
 ### Added
