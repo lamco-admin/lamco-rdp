@@ -89,7 +89,7 @@ This crate is part of the Lamco RDP project. Lamco develops RDP server solutions
 **Open source foundation:** Protocol components, input translation, clipboard utilities
 **Commercial products:** Lamco RDP Portal Server, Lamco VDI
 
-Learn more: [lamco.ai](https://lamco.ai)
+Learn more: [lamco.ai/open-source/lamco-rdp/input](https://lamco.ai/open-source/lamco-rdp/input/) — by Lamco Development LLC
 
 ## License
 

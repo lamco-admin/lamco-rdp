@@ -5,6 +5,18 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-08-25
+
+### Changed
+- Bumped bundled `lamco-rdp-input` to 0.2.0 — MS-RDPEI multi-touch support
+  (new `touch` module) plus the
+  [IronRDP#1466](https://github.com/Devolutions/IronRDP/issues/1466) fix
+  (mouse button events now carry position). Breaking for consumers of the
+  re-exported `input` module: `CoordinateTransformer::rdp_to_stream` takes
+  `(i32, i32)`, and `MouseHandler::handle_button_down`/`handle_button_up`
+  each gained two required parameters. See lamco-rdp-input's own
+  CHANGELOG for full detail.
+
 ## [0.7.0] - 2026-07-23
 
 ### Changed
