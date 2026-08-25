@@ -169,8 +169,14 @@ impl CoordinateTransformer {
         }
     }
 
-    /// Transform RDP coordinates to stream coordinates
-    pub fn rdp_to_stream(&mut self, rdp_x: u32, rdp_y: u32) -> Result<(f64, f64)> {
+    /// Transform RDP coordinates to stream coordinates.
+    ///
+    /// Signed input: MS-RDPEI touch contacts carry `FOUR_BYTE_SIGNED_INTEGER`
+    /// x/y (can go negative for a monitor positioned left of or above the
+    /// primary in an extended layout), unlike MS-RDPBCGR's unsigned mouse
+    /// coordinates. Both feed the same virtual-desktop-relative pixel space,
+    /// so mouse callers just widen their `u32`/`u16` values into this.
+    pub fn rdp_to_stream(&mut self, rdp_x: i32, rdp_y: i32) -> Result<(f64, f64)> {
         // Step 1: Normalize RDP coordinates to [0, 1] range
         let norm_x = rdp_x as f64 / self.coord_system.rdp_width as f64;
         let norm_y = rdp_y as f64 / self.coord_system.rdp_height as f64;
@@ -292,7 +298,7 @@ impl CoordinateTransformer {
         self.last_rdp_y = new_rdp_y;
 
         // Transform to stream coordinates
-        self.rdp_to_stream(new_rdp_x, new_rdp_y)
+        self.rdp_to_stream(new_rdp_x as i32, new_rdp_y as i32)
     }
 
     /// Calculate mouse acceleration based on movement speed
@@ -471,8 +477,8 @@ mod tests {
             let (rdp_x, rdp_y) = transformer.stream_to_rdp(stream_x, stream_y).unwrap();
 
             // Allow for small rounding errors
-            assert!((rdp_x as i32 - orig_x as i32).abs() <= 1);
-            assert!((rdp_y as i32 - orig_y as i32).abs() <= 1);
+            assert!((rdp_x as i32 - orig_x).abs() <= 1);
+            assert!((rdp_y as i32 - orig_y).abs() <= 1);
         }
     }
 

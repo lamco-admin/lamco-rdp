@@ -249,6 +249,7 @@ pub mod error;
 pub mod keyboard;
 pub mod mapper;
 pub mod mouse;
+pub mod touch;
 pub mod translator;
 
 // Re-export main types for convenience
@@ -257,6 +258,7 @@ pub use error::{ErrorContext, InputError, RecoveryAction, Result};
 pub use keyboard::{KeyModifiers, KeyboardEvent, KeyboardHandler};
 pub use mapper::{ScancodeMapper, keycodes};
 pub use mouse::{MouseButton, MouseEvent, MouseHandler};
+pub use touch::{TouchContactFlags, TouchEvent, TouchHandler};
 pub use translator::{InputTranslator, KeyboardEventType, LinuxInputEvent, RdpInputEvent};
 
 // Re-export commonly used types at module level
