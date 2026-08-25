@@ -65,6 +65,10 @@ pub enum MouseEvent {
     ButtonDown {
         /// Button that was pressed
         button: MouseButton,
+        /// Position (stream coordinates), if the source event carried one.
+        /// `None` for sources with no absolute position (e.g. a relative
+        /// motion channel's button branch).
+        position: Option<(f64, f64)>,
         /// Event timestamp
         timestamp: Instant,
     },
@@ -73,6 +77,8 @@ pub enum MouseEvent {
     ButtonUp {
         /// Button that was released
         button: MouseButton,
+        /// Position (stream coordinates), if the source event carried one.
+        position: Option<(f64, f64)>,
         /// Event timestamp
         timestamp: Instant,
     },
@@ -129,7 +135,7 @@ impl MouseHandler {
         rdp_y: u32,
         transformer: &mut CoordinateTransformer,
     ) -> Result<MouseEvent> {
-        let (stream_x, stream_y) = transformer.rdp_to_stream(rdp_x, rdp_y)?;
+        let (stream_x, stream_y) = transformer.rdp_to_stream(rdp_x as i32, rdp_y as i32)?;
 
         // Clamp to bounds
         let (stream_x, stream_y) = transformer.clamp_to_bounds(stream_x, stream_y);
@@ -182,30 +188,85 @@ impl MouseHandler {
         })
     }
 
-    /// Process mouse button press
-    pub fn handle_button_down(&mut self, button: MouseButton) -> Result<MouseEvent> {
+    /// Process mouse button press.
+    ///
+    /// `position`, when `Some`, is the RDP-coordinate position the source
+    /// event carried (e.g. a `MousePdu`/`MouseXPdu`-originated button PDU
+    /// always has one); it is transformed and clamped the same way
+    /// [`Self::handle_absolute_move`] does, and updates the tracked cursor
+    /// position before the button state changes, so the button lands where
+    /// the client actually clicked rather than wherever the cursor was last.
+    /// Pass `None` for sources with no absolute position to report (a
+    /// relative-motion channel's button branch).
+    pub fn handle_button_down(
+        &mut self,
+        button: MouseButton,
+        position: Option<(u32, u32)>,
+        transformer: &mut CoordinateTransformer,
+    ) -> Result<MouseEvent> {
+        let stream_position = self.apply_button_position(position, transformer)?;
+
         let button_index = Self::button_to_index(button);
         self.button_states[button_index] = true;
 
         let timestamp = Instant::now();
         self.last_event_time = Some(timestamp);
 
-        debug!("Mouse button down: {:?}", button);
+        debug!("Mouse button down: {:?} at {:?}", button, stream_position);
 
-        Ok(MouseEvent::ButtonDown { button, timestamp })
+        Ok(MouseEvent::ButtonDown {
+            button,
+            position: stream_position,
+            timestamp,
+        })
     }
 
-    /// Process mouse button release
-    pub fn handle_button_up(&mut self, button: MouseButton) -> Result<MouseEvent> {
+    /// Process mouse button release. See [`Self::handle_button_down`] for
+    /// the `position` parameter's contract.
+    pub fn handle_button_up(
+        &mut self,
+        button: MouseButton,
+        position: Option<(u32, u32)>,
+        transformer: &mut CoordinateTransformer,
+    ) -> Result<MouseEvent> {
+        let stream_position = self.apply_button_position(position, transformer)?;
+
         let button_index = Self::button_to_index(button);
         self.button_states[button_index] = false;
 
         let timestamp = Instant::now();
         self.last_event_time = Some(timestamp);
 
-        debug!("Mouse button up: {:?}", button);
+        debug!("Mouse button up: {:?} at {:?}", button, stream_position);
 
-        Ok(MouseEvent::ButtonUp { button, timestamp })
+        Ok(MouseEvent::ButtonUp {
+            button,
+            position: stream_position,
+            timestamp,
+        })
+    }
+
+    /// Shared position handling for button down/up: transform, clamp, and
+    /// update the tracked cursor position, matching
+    /// [`Self::handle_absolute_move`]'s treatment of the same RDP-coordinate
+    /// input. Returns the resulting stream coordinates, or `None` if no
+    /// position was given.
+    fn apply_button_position(
+        &mut self,
+        position: Option<(u32, u32)>,
+        transformer: &mut CoordinateTransformer,
+    ) -> Result<Option<(f64, f64)>> {
+        let Some((rdp_x, rdp_y)) = position else {
+            return Ok(None);
+        };
+
+        let (stream_x, stream_y) = transformer.rdp_to_stream(rdp_x as i32, rdp_y as i32)?;
+        let (stream_x, stream_y) = transformer.clamp_to_bounds(stream_x, stream_y);
+
+        self.current_x = stream_x;
+        self.current_y = stream_y;
+
+        Ok(Some((stream_x, stream_y)))
     }
 
     /// Process mouse wheel scroll
@@ -358,9 +419,12 @@ mod tests {
     #[test]
     fn test_button_press_release() {
         let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
 
         // Press left button
-        let event = handler.handle_button_down(MouseButton::Left).unwrap();
+        let event = handler
+            .handle_button_down(MouseButton::Left, None, &mut transformer)
+            .unwrap();
         match event {
             MouseEvent::ButtonDown { button, .. } => {
                 assert_eq!(button, MouseButton::Left);
@@ -371,7 +435,9 @@ mod tests {
         assert!(handler.is_button_pressed(MouseButton::Left));
 
         // Release left button
-        let event = handler.handle_button_up(MouseButton::Left).unwrap();
+        let event = handler
+            .handle_button_up(MouseButton::Left, None, &mut transformer)
+            .unwrap();
         match event {
             MouseEvent::ButtonUp { button, .. } => {
                 assert_eq!(button, MouseButton::Left);
@@ -380,6 +446,54 @@ mod tests {
         }
 
         assert!(!handler.is_button_pressed(MouseButton::Left));
+    }
+
+    #[test]
+    fn test_button_press_carries_position() {
+        let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
+
+        let event = handler
+            .handle_button_down(MouseButton::Left, Some((960, 540)), &mut transformer)
+            .unwrap();
+
+        match event {
+            MouseEvent::ButtonDown { button, position, .. } => {
+                assert_eq!(button, MouseButton::Left);
+                let (x, y) = position.expect("position should be carried through");
+                assert!(x > 0.0);
+                assert!(y > 0.0);
+            }
+            _ => panic!("Expected ButtonDown event"),
+        }
+
+        let (x, y) = handler.current_position();
+        assert!(x > 0.0);
+        assert!(y > 0.0);
+    }
+
+    #[test]
+    fn test_button_press_without_position_leaves_current_position_unchanged() {
+        let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
+
+        handler.handle_absolute_move(960, 540, &mut transformer).unwrap();
+        let (before_x, before_y) = handler.current_position();
+
+        let event = handler
+            .handle_button_down(MouseButton::Left, None, &mut transformer)
+            .unwrap();
+
+        match event {
+            MouseEvent::ButtonDown { position, .. } => {
+                assert!(position.is_none());
+            }
+            _ => panic!("Expected ButtonDown event"),
+        }
+
+        let (after_x, after_y) = handler.current_position();
+        assert_eq!(before_x, after_x);
+        assert_eq!(before_y, after_y);
     }
 
     #[test]
@@ -438,15 +552,22 @@ mod tests {
     #[test]
     fn test_multiple_button_states() {
         let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
 
-        handler.handle_button_down(MouseButton::Left).unwrap();
-        handler.handle_button_down(MouseButton::Right).unwrap();
+        handler
+            .handle_button_down(MouseButton::Left, None, &mut transformer)
+            .unwrap();
+        handler
+            .handle_button_down(MouseButton::Right, None, &mut transformer)
+            .unwrap();
 
         assert!(handler.is_button_pressed(MouseButton::Left));
         assert!(handler.is_button_pressed(MouseButton::Right));
         assert!(!handler.is_button_pressed(MouseButton::Middle));
 
-        handler.handle_button_up(MouseButton::Left).unwrap();
+        handler
+            .handle_button_up(MouseButton::Left, None, &mut transformer)
+            .unwrap();
 
         assert!(!handler.is_button_pressed(MouseButton::Left));
         assert!(handler.is_button_pressed(MouseButton::Right));
@@ -455,9 +576,14 @@ mod tests {
     #[test]
     fn test_mouse_reset() {
         let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
 
-        handler.handle_button_down(MouseButton::Left).unwrap();
-        handler.handle_button_down(MouseButton::Right).unwrap();
+        handler
+            .handle_button_down(MouseButton::Left, None, &mut transformer)
+            .unwrap();
+        handler
+            .handle_button_down(MouseButton::Right, None, &mut transformer)
+            .unwrap();
         handler.scroll_accum_x = 5.0;
         handler.scroll_accum_y = 5.0;
 
@@ -472,10 +598,13 @@ mod tests {
     #[test]
     fn test_time_since_last_event() {
         let mut handler = MouseHandler::new();
+        let mut transformer = create_test_transformer();
 
         assert!(handler.time_since_last_event().is_none());
 
-        handler.handle_button_down(MouseButton::Left).unwrap();
+        handler
+            .handle_button_down(MouseButton::Left, None, &mut transformer)
+            .unwrap();
 
         assert!(handler.time_since_last_event().is_some());
         assert!(handler.time_since_last_event().unwrap().as_millis() < 100);

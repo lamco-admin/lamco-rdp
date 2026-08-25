@@ -270,21 +270,24 @@ impl InputTranslator {
             InputError::Unknown(format!("Unknown mouse button: 0x{:04X}", button_flags))
         })?;
 
+        // This path only ever receives raw RDP button flags, no wire
+        // position, so it keeps its existing position-less behavior.
         let mouse_event = if pressed {
-            self.mouse.handle_button_down(button)?
+            self.mouse
+                .handle_button_down(button, None, &mut self.coord_transformer)?
         } else {
-            self.mouse.handle_button_up(button)?
+            self.mouse.handle_button_up(button, None, &mut self.coord_transformer)?
         };
 
         match mouse_event {
-            MouseEvent::ButtonDown { button, timestamp } => Ok(LinuxInputEvent::MouseButton {
+            MouseEvent::ButtonDown { button, timestamp, .. } => Ok(LinuxInputEvent::MouseButton {
                 button_code: button.to_linux_button(),
                 button,
                 pressed: true,
                 timestamp,
             }),
 
-            MouseEvent::ButtonUp { button, timestamp } => Ok(LinuxInputEvent::MouseButton {
+            MouseEvent::ButtonUp { button, timestamp, .. } => Ok(LinuxInputEvent::MouseButton {
                 button_code: button.to_linux_button(),
                 button,
                 pressed: false,
