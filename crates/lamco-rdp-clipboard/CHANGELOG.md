@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `ClipboardEventReceiver::recv()`: an async wait for the next event, so a
+  consumer can sleep until the backend queues one instead of polling
+  `try_recv()` on a timer. Runtime-agnostic; no new dependencies.
+
+### Fixed
+- `ClipboardEventSender::send()` dropped the event (with only a warning) when
+  the queue lock was contended, for example while a consumer was polling. The
+  queue now takes a plain mutex held for one push or pop, so no event is lost.
+
 ## [0.5.0] - 2026-07-23
 
 ### Changed

@@ -9,7 +9,8 @@ use ironrdp_cliprdr::pdu::{
     FileContentsRequest, FileContentsResponse, FileDescriptor, FormatDataRequest, FormatDataResponse, LockDataId,
 };
 use std::collections::VecDeque;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::task::{Poll, Waker};
 
 /// Metadata for one file in a remote `FileGroupDescriptorW` list.
 ///
@@ -180,29 +181,49 @@ impl ClipboardEvent {
     }
 }
 
+#[derive(Debug, Default)]
+struct EventQueue {
+    events: VecDeque<ClipboardEvent>,
+    /// Tasks parked in [`ClipboardEventReceiver::recv`].
+    waiters: Vec<Waker>,
+}
+
+#[derive(Debug, Default)]
+struct SharedQueue(Mutex<EventQueue>);
+
+impl SharedQueue {
+    // The lock only guards a push or a pop, so a poisoned queue is still usable.
+    fn lock(&self) -> MutexGuard<'_, EventQueue> {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
 /// Sender side of the clipboard event channel.
 ///
-/// This is a simple queue-based sender that uses `RwLock` for thread-safety.
-/// Events are queued for later processing by an async task.
+/// The IronRDP backend calls in synchronously, so sending only pushes onto a
+/// shared queue and wakes any task waiting in [`ClipboardEventReceiver::recv`].
 #[derive(Debug, Clone)]
 pub struct ClipboardEventSender {
-    queue: Arc<RwLock<VecDeque<ClipboardEvent>>>,
+    queue: Arc<SharedQueue>,
 }
 
 impl ClipboardEventSender {
     /// Create a new event sender
     pub fn new() -> Self {
         Self {
-            queue: Arc::new(RwLock::new(VecDeque::new())),
+            queue: Arc::new(SharedQueue::default()),
         }
     }
 
     /// Send an event (non-blocking, queues for later processing)
     pub fn send(&self, event: ClipboardEvent) {
-        if let Ok(mut queue) = self.queue.try_write() {
-            queue.push_back(event);
-        } else {
-            tracing::warn!("Failed to acquire clipboard event queue lock");
+        let waiters = {
+            let mut queue = self.queue.lock();
+            queue.events.push_back(event);
+            std::mem::take(&mut queue.waiters)
+        };
+        for waiter in waiters {
+            waiter.wake();
         }
     }
 
@@ -223,33 +244,103 @@ impl Default for ClipboardEventSender {
 /// Receiver side of the clipboard event channel.
 #[derive(Debug, Clone)]
 pub struct ClipboardEventReceiver {
-    queue: Arc<RwLock<VecDeque<ClipboardEvent>>>,
+    queue: Arc<SharedQueue>,
 }
 
 impl ClipboardEventReceiver {
     /// Try to receive the next event (non-blocking)
     pub fn try_recv(&self) -> Option<ClipboardEvent> {
-        self.queue.try_write().ok()?.pop_front()
+        self.queue.lock().events.pop_front()
+    }
+
+    /// Wait for the next event.
+    ///
+    /// Lets an async consumer sleep until the backend queues something instead
+    /// of polling [`try_recv`](Self::try_recv) on a timer.
+    pub async fn recv(&self) -> ClipboardEvent {
+        std::future::poll_fn(|cx| {
+            let mut queue = self.queue.lock();
+            if let Some(event) = queue.events.pop_front() {
+                return Poll::Ready(event);
+            }
+            if !queue.waiters.iter().any(|w| w.will_wake(cx.waker())) {
+                queue.waiters.push(cx.waker().clone());
+            }
+            Poll::Pending
+        })
+        .await
     }
 
     /// Drain all pending events
     pub fn drain(&self) -> Vec<ClipboardEvent> {
-        self.queue
-            .try_write()
-            .ok()
-            .map(|mut q| q.drain(..).collect())
-            .unwrap_or_default()
+        self.queue.lock().events.drain(..).collect()
     }
 
     /// Check if there are pending events
     pub fn has_pending(&self) -> bool {
-        self.queue.try_read().map(|q| !q.is_empty()).unwrap_or(false)
+        !self.queue.lock().events.is_empty()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn block_on<F: std::future::Future>(future: F) -> F::Output {
+        struct ThreadWaker(std::thread::Thread);
+        impl std::task::Wake for ThreadWaker {
+            fn wake(self: Arc<Self>) {
+                self.0.unpark();
+            }
+        }
+        let waker = Waker::from(Arc::new(ThreadWaker(std::thread::current())));
+        let mut cx = std::task::Context::from_waker(&waker);
+        let mut future = std::pin::pin!(future);
+        loop {
+            if let Poll::Ready(out) = future.as_mut().poll(&mut cx) {
+                return out;
+            }
+            std::thread::park();
+        }
+    }
+
+    #[test]
+    fn recv_wakes_when_another_thread_sends() {
+        let sender = ClipboardEventSender::new();
+        let receiver = sender.subscribe();
+        let producer = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            sender.send(ClipboardEvent::Ready);
+        });
+        assert!(matches!(block_on(receiver.recv()), ClipboardEvent::Ready));
+        producer.join().unwrap();
+    }
+
+    #[test]
+    fn concurrent_sends_are_all_queued() {
+        let sender = ClipboardEventSender::new();
+        let receiver = sender.subscribe();
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let sender = sender.clone();
+                std::thread::spawn(move || {
+                    for _ in 0..500 {
+                        sender.send(ClipboardEvent::RequestFormatList);
+                    }
+                })
+            })
+            .collect();
+        let mut received = 0;
+        while received < 8 * 500 {
+            if receiver.try_recv().is_some() {
+                received += 1;
+            }
+        }
+        for thread in threads {
+            thread.join().unwrap();
+        }
+        assert!(receiver.try_recv().is_none());
+    }
 
     #[test]
     fn test_event_channel() {
