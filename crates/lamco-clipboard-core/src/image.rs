@@ -122,27 +122,54 @@ pub fn dib_to_jpeg(dib_data: &[u8]) -> ClipboardResult<Vec<u8>> {
 
 /// Convert DIB data to BMP file format.
 ///
-/// This adds the 14-byte BMP file header to the DIB data.
+/// This adds the 14-byte BMP file header to the DIB data. The header's pixel
+/// offset accounts for the DIB's own header size (40 for CF_DIB, 124 for
+/// CF_DIBV5), BI_BITFIELDS masks that follow a 40-byte header, and any colour
+/// table.
 pub fn dib_to_bmp(dib_data: &[u8]) -> ClipboardResult<Vec<u8>> {
     if dib_data.len() < 40 {
         return Err(ClipboardError::ImageDecode("DIB too small".to_string()));
     }
 
-    // Parse DIB header to calculate file size
-    let file_size =
-        u32::try_from(14 + dib_data.len()).map_err(|_| ClipboardError::ImageDecode("DIB too large".to_string()))?;
-    let pixel_offset: u32 = 14 + 40; // File header + DIB header (minimum)
+    let read_u32 = |at: usize| u32::from_le_bytes([dib_data[at], dib_data[at + 1], dib_data[at + 2], dib_data[at + 3]]);
+    let header_size = read_u32(0);
+    let bit_count = u16::from_le_bytes([dib_data[14], dib_data[15]]);
+    let compression = read_u32(16);
+    let colors_used = read_u32(32);
 
-    let mut bmp = BytesMut::new();
+    const BI_BITFIELDS: u32 = 3;
+    const BI_ALPHABITFIELDS: u32 = 6;
+    let mask_bytes: u32 = match (header_size, compression) {
+        (40, BI_BITFIELDS) => 12,
+        (40, BI_ALPHABITFIELDS) => 16,
+        _ => 0,
+    };
+    let palette_entries = if colors_used != 0 {
+        colors_used
+    } else if bit_count <= 8 {
+        1 << bit_count
+    } else {
+        0
+    };
 
-    // BMP file header (14 bytes)
-    bmp.put_slice(b"BM"); // Signature
-    bmp.put_u32_le(file_size); // File size
+    let pixel_offset = u64::from(header_size) + u64::from(mask_bytes) + u64::from(palette_entries) * 4;
+    if header_size < 40 || pixel_offset > dib_data.len() as u64 {
+        return Err(ClipboardError::ImageDecode(format!(
+            "DIB header ({header_size} bytes, {palette_entries} colours) runs past its {} bytes",
+            dib_data.len()
+        )));
+    }
+
+    let too_large = || ClipboardError::ImageDecode("DIB too large".to_string());
+    let file_size = u32::try_from(14 + dib_data.len()).map_err(|_| too_large())?;
+    let pixel_offset = u32::try_from(14 + pixel_offset).map_err(|_| too_large())?;
+
+    let mut bmp = BytesMut::with_capacity(14 + dib_data.len());
+    bmp.put_slice(b"BM");
+    bmp.put_u32_le(file_size);
     bmp.put_u16_le(0); // Reserved1
     bmp.put_u16_le(0); // Reserved2
-    bmp.put_u32_le(pixel_offset); // Pixel data offset
-
-    // Append DIB data
+    bmp.put_u32_le(pixel_offset);
     bmp.put_slice(dib_data);
 
     Ok(bmp.to_vec())
@@ -746,6 +773,35 @@ mod tests {
         // Extract DIB back
         let dib_back = bmp_to_dib(&bmp).unwrap();
         assert_eq!(dib, dib_back);
+    }
+
+    #[test]
+    fn dibv5_to_bmp_points_past_the_v5_header() {
+        let image = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(4, 4, image::Rgba([10, 20, 30, 255])));
+        let dibv5 = create_dibv5_from_image(&image).unwrap();
+
+        let bmp = dib_to_bmp(&dibv5).unwrap();
+        assert_eq!(u32::from_le_bytes([bmp[10], bmp[11], bmp[12], bmp[13]]), 14 + 124);
+
+        let decoded = image::load_from_memory(&bmp).unwrap().to_rgba8();
+        assert_eq!(decoded.get_pixel(0, 0), &image::Rgba([10, 20, 30, 255]));
+    }
+
+    #[test]
+    fn dib_to_bmp_skips_bitfield_masks_and_palette() {
+        let mut bitfields = dib_header(1, 1, 32, 4);
+        bitfields[16..20].copy_from_slice(&3u32.to_le_bytes());
+        bitfields.splice(40..40, [0u8; 12]);
+        let bmp = dib_to_bmp(&bitfields).unwrap();
+        assert_eq!(u32::from_le_bytes([bmp[10], bmp[11], bmp[12], bmp[13]]), 14 + 40 + 12);
+
+        let mut paletted = dib_header(1, 1, 8, 4);
+        paletted.splice(40..40, [0u8; 256 * 4]);
+        let bmp = dib_to_bmp(&paletted).unwrap();
+        assert_eq!(u32::from_le_bytes([bmp[10], bmp[11], bmp[12], bmp[13]]), 14 + 40 + 1024);
+
+        let truncated = dib_header(1, 1, 8, 4);
+        assert!(dib_to_bmp(&truncated).is_err());
     }
 
     #[test]
