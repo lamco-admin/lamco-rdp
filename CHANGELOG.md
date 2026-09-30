@@ -5,6 +5,19 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-09-30
+
+### Changed
+- **lamco-clipboard-core 0.6.2:** `dib_to_bmp()` now computes the BMP pixel-data
+  offset from the DIB header instead of assuming a 40-byte header, so CF_DIBV5,
+  BI_BITFIELDS and paletted bitmaps convert correctly. The crate's `homepage`
+  now points at its own lamco.ai page. See lamco-clipboard-core's own changelog.
+- **lamco-rdp-clipboard 0.5.1:** adds `ClipboardEventReceiver::recv()`, an async
+  wait for the next event, and stops the event queue from dropping an event when
+  its lock is contended. See lamco-rdp-clipboard's own changelog.
+- The `lamco-clipboard-core` and `lamco-rdp-clipboard` requirements move to
+  `0.6.2` and `0.5.1`. `lamco-rdp-input` is unaffected and stays at 0.2.0.
+
 ## [0.8.0] - 2026-08-25
 
 ### Changed

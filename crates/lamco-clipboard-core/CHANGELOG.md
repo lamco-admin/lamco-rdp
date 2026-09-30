@@ -5,13 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.2] - 2026-09-30
 
 ### Fixed
 - `dib_to_bmp()` wrote a pixel-data offset of 54 for every DIB, so a CF_DIBV5
   bitmap, a BI_BITFIELDS DIB or a paletted DIB became a BMP whose pixels were
   read from the middle of its header. The offset now covers the DIB header,
   bitfield masks and colour table.
+
+### Changed
+- The UTF-16 decoding in `formats` uses `as_chunks` instead of `chunks_exact`.
+- `homepage` now points at the crate's own page on lamco.ai instead of the
+  organisation homepage, and the README carries the website and docs links.
 
 ## [0.5.0] - 2025-12-30
 

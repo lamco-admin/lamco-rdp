@@ -4,6 +4,8 @@
 [![Documentation](https://docs.rs/lamco-clipboard-core/badge.svg)](https://docs.rs/lamco-clipboard-core)
 [![License](https://img.shields.io/crates/l/lamco-clipboard-core.svg)](LICENSE-MIT)
 
+**Website:** [lamco.ai/open-source/lamco-rdp/clipboard-core](https://lamco.ai/open-source/lamco-rdp/clipboard-core/) · **Docs:** [docs.rs/lamco-clipboard-core](https://docs.rs/lamco-clipboard-core) · part of [Lamco RDP](https://lamco.ai/open-source/lamco-rdp/) by Lamco Development LLC
+
 Protocol-agnostic clipboard utilities for Rust.
 
 This crate provides core clipboard functionality that can be used with any clipboard backend (Portal, X11, headless, etc.):
@@ -17,7 +19,7 @@ This crate provides core clipboard functionality that can be used with any clipb
 
 ```toml
 [dependencies]
-lamco-clipboard-core = "0.1"
+lamco-clipboard-core = "0.6"
 ```
 
 ## Feature Flags
@@ -25,10 +27,10 @@ lamco-clipboard-core = "0.1"
 ```toml
 [dependencies]
 # Default - text conversion, loop detection, transfer engine
-lamco-clipboard-core = "0.1"
+lamco-clipboard-core = "0.6"
 
 # With image format conversion (PNG/JPEG/BMP ↔ DIB)
-lamco-clipboard-core = { version = "0.1", features = ["image"] }
+lamco-clipboard-core = { version = "0.6", features = ["image"] }
 ```
 
 | Feature | Description |
