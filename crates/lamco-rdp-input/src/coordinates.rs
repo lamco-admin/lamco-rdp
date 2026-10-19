@@ -60,6 +60,22 @@ impl MonitorInfo {
     }
 }
 
+/// A position on one monitor's own stream
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MonitorPoint {
+    /// The monitor's `MonitorInfo::id`
+    pub monitor_id: u32,
+    pub x: f64,
+    pub y: f64,
+}
+
+/// How far a point is from a rectangle; zero when it is inside.
+fn distance_outside(x: f64, y: f64, left: f64, top: f64, width: u32, height: u32) -> f64 {
+    let dx = (left - x).max(0.0).max(x - (left + width as f64));
+    let dy = (top - y).max(0.0).max(y - (top + height as f64));
+    dx.hypot(dy)
+}
+
 /// Coordinate system information
 #[derive(Debug, Clone)]
 pub struct CoordinateSystem {
@@ -148,16 +164,20 @@ impl CoordinateTransformer {
         let virtual_width = (max_x - min_x) as u32;
         let virtual_height = (max_y - min_y) as u32;
 
-        // Calculate stream dimensions
-        let stream_width = monitors.iter().map(|m| m.stream_width).max().unwrap_or(0);
-        let stream_height = monitors.iter().map(|m| m.stream_height).max().unwrap_or(0);
+        // The stream space is the whole canvas the monitors are laid out on, so
+        // its extent runs to the far edge of the last monitor, not to the width
+        // of the widest one.
+        let stream_width = monitors.iter().map(|m| m.stream_x + m.stream_width).max().unwrap_or(0);
+        let stream_height = monitors.iter().map(|m| m.stream_y + m.stream_height).max().unwrap_or(0);
 
         // Get primary monitor for RDP dimensions and DPI
         let primary = monitors.iter().find(|m| m.is_primary).unwrap_or(&monitors[0]);
 
         CoordinateSystem {
-            rdp_width: primary.width,
-            rdp_height: primary.height,
+            // The client's desktop is every monitor laid out together, and its
+            // pointer positions are positions on that canvas, not on the primary.
+            rdp_width: virtual_width.max(1),
+            rdp_height: virtual_height.max(1),
             virtual_width,
             virtual_height,
             virtual_x_offset: min_x,
@@ -193,9 +213,10 @@ impl CoordinateTransformer {
         // Step 4: Find target monitor
         let monitor = self.find_monitor_at_point(virtual_x, virtual_y)?;
 
-        // Step 5: Transform to monitor-local coordinates
-        let local_x = virtual_x - monitor.x as f64;
-        let local_y = virtual_y - monitor.y as f64;
+        // Step 5: Transform to monitor-local coordinates. A point in a gap of an
+        // L-shaped layout is held to the nearest monitor's edge.
+        let local_x = (virtual_x - monitor.x as f64).clamp(0.0, monitor.width as f64 - 1.0);
+        let local_y = (virtual_y - monitor.y as f64).clamp(0.0, monitor.height as f64 - 1.0);
 
         // Step 6: Apply monitor scaling
         let monitor_scale_x = monitor.stream_width as f64 / monitor.width as f64;
@@ -328,11 +349,14 @@ impl CoordinateTransformer {
             }
         }
 
-        // Default to primary monitor if point is outside all monitors
+        // In a gap of the layout or past its edge: the nearest monitor, so the
+        // pointer stops at an edge instead of jumping to the primary.
         self.monitors
             .iter()
-            .find(|m| m.is_primary)
-            .or_else(|| self.monitors.first())
+            .min_by(|a, b| {
+                distance_outside(x, y, a.x as f64, a.y as f64, a.width, a.height)
+                    .total_cmp(&distance_outside(x, y, b.x as f64, b.y as f64, b.width, b.height))
+            })
             .ok_or(InputError::InvalidCoordinate(x, y))
     }
 
@@ -344,10 +368,46 @@ impl CoordinateTransformer {
             }
         }
 
-        // Default to first monitor
+        // Past the canvas edge: the nearest monitor.
         self.monitors
-            .first()
+            .iter()
+            .min_by(|a, b| {
+                distance_outside(
+                    stream_x,
+                    stream_y,
+                    a.stream_x as f64,
+                    a.stream_y as f64,
+                    a.stream_width,
+                    a.stream_height,
+                )
+                .total_cmp(&distance_outside(
+                    stream_x,
+                    stream_y,
+                    b.stream_x as f64,
+                    b.stream_y as f64,
+                    b.stream_width,
+                    b.stream_height,
+                ))
+            })
             .ok_or(InputError::InvalidCoordinate(stream_x, stream_y))
+    }
+
+    /// Which monitor a stream-space point is on, and where on that monitor.
+    ///
+    /// `rdp_to_stream` and `apply_relative_movement` give positions on the
+    /// whole stream canvas. The compositor wants a position within one
+    /// output's own stream, so this names the output the point falls in and
+    /// subtracts that output's offset. A point just past an edge is held on the
+    /// nearest monitor.
+    pub fn locate_in_monitor(&self, stream_x: f64, stream_y: f64) -> Result<MonitorPoint> {
+        let monitor = self.find_monitor_from_stream(stream_x, stream_y)?;
+        let max_x = (monitor.stream_width as f64 - 1.0).max(0.0);
+        let max_y = (monitor.stream_height as f64 - 1.0).max(0.0);
+        Ok(MonitorPoint {
+            monitor_id: monitor.id,
+            x: (stream_x - monitor.stream_x as f64).clamp(0.0, max_x),
+            y: (stream_y - monitor.stream_y as f64).clamp(0.0, max_y),
+        })
     }
 
     /// Clamp coordinates to monitor bounds
@@ -600,6 +660,134 @@ mod tests {
 
         transformer.update_monitors(new_monitors).unwrap();
         assert_eq!(transformer.monitor_count(), 2);
+    }
+
+    fn monitor(id: u32, x: i32, y: i32, width: u32, height: u32, primary: bool) -> MonitorInfo {
+        MonitorInfo {
+            id,
+            name: format!("Monitor {id}"),
+            x,
+            y,
+            width,
+            height,
+            dpi: 96.0,
+            scale_factor: 1.0,
+            stream_x: x as u32,
+            stream_y: y as u32,
+            stream_width: width,
+            stream_height: height,
+            is_primary: primary,
+        }
+    }
+
+    fn side_by_side() -> CoordinateTransformer {
+        let mut transformer = CoordinateTransformer::new(vec![
+            monitor(40, 0, 0, 1280, 800, true),
+            monitor(41, 1280, 0, 1280, 800, false),
+        ])
+        .unwrap();
+        transformer.set_sub_pixel_enabled(false);
+        transformer
+    }
+
+    #[test]
+    fn a_position_on_two_outputs_is_not_scaled_by_the_first_one_alone() {
+        let mut transformer = side_by_side();
+
+        assert_eq!(transformer.rdp_to_stream(320, 100).unwrap(), (320.0, 100.0));
+        assert_eq!(transformer.rdp_to_stream(1280, 100).unwrap(), (1280.0, 100.0));
+        assert_eq!(transformer.rdp_to_stream(2559, 799).unwrap(), (2559.0, 799.0));
+    }
+
+    #[test]
+    fn a_position_is_routed_to_the_output_it_is_on() {
+        let mut transformer = side_by_side();
+
+        let (x, y) = transformer.rdp_to_stream(320, 100).unwrap();
+        let point = transformer.locate_in_monitor(x, y).unwrap();
+        assert_eq!(
+            point,
+            MonitorPoint {
+                monitor_id: 40,
+                x: 320.0,
+                y: 100.0
+            }
+        );
+
+        let (x, y) = transformer.rdp_to_stream(1280 + 640, 400).unwrap();
+        let point = transformer.locate_in_monitor(x, y).unwrap();
+        assert_eq!(
+            point,
+            MonitorPoint {
+                monitor_id: 41,
+                x: 640.0,
+                y: 400.0
+            }
+        );
+    }
+
+    #[test]
+    fn the_cursor_is_reported_back_at_the_position_it_has_on_the_second_output() {
+        let transformer = side_by_side();
+
+        assert_eq!(transformer.stream_to_rdp(1280.0 + 100.0, 50.0).unwrap(), (1380, 50));
+    }
+
+    #[test]
+    fn relative_movement_crosses_to_the_second_output() {
+        let mut transformer = side_by_side();
+        transformer.set_acceleration_enabled(false);
+        transformer.last_rdp_x = 1270;
+        transformer.last_rdp_y = 100;
+
+        let (x, y) = transformer.apply_relative_movement(30, 0).unwrap();
+        assert_eq!((x, y), (1300.0, 100.0));
+        assert_eq!(transformer.locate_in_monitor(x, y).unwrap().monitor_id, 41);
+    }
+
+    #[test]
+    fn relative_movement_stops_at_the_far_edge_of_the_last_output() {
+        let mut transformer = side_by_side();
+        transformer.set_acceleration_enabled(false);
+        transformer.last_rdp_x = 2550;
+
+        let (x, _) = transformer.apply_relative_movement(500, 0).unwrap();
+        assert_eq!(x, 2559.0);
+    }
+
+    #[test]
+    fn a_point_in_the_gap_of_an_l_shaped_layout_stays_on_the_nearest_output() {
+        let mut transformer = CoordinateTransformer::new(vec![
+            monitor(1, 0, 0, 1000, 1000, true),
+            monitor(2, 1000, 0, 1000, 500, false),
+        ])
+        .unwrap();
+        transformer.set_sub_pixel_enabled(false);
+
+        let (x, y) = transformer.rdp_to_stream(1500, 900).unwrap();
+        let point = transformer.locate_in_monitor(x, y).unwrap();
+        assert_eq!(point.monitor_id, 2);
+        assert_eq!(point.y, 499.0);
+    }
+
+    #[test]
+    fn an_output_left_of_the_primary_counts_from_the_canvas_origin() {
+        let mut left = monitor(1, 0, 0, 800, 600, false);
+        left.stream_x = 0;
+        let mut primary = monitor(2, 800, 0, 800, 600, true);
+        primary.stream_x = 800;
+        let mut transformer = CoordinateTransformer::new(vec![primary, left]).unwrap();
+        transformer.set_sub_pixel_enabled(false);
+
+        let (x, y) = transformer.rdp_to_stream(100, 100).unwrap();
+        assert_eq!(
+            transformer.locate_in_monitor(x, y).unwrap(),
+            MonitorPoint {
+                monitor_id: 1,
+                x: 100.0,
+                y: 100.0
+            }
+        );
     }
 
     #[test]

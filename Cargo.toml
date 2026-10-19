@@ -16,7 +16,7 @@ homepage = "https://lamco.ai"
 
 [workspace.dependencies]
 # Internal crates
-lamco-rdp-input = { version = "0.2.0", path = "crates/lamco-rdp-input" }
+lamco-rdp-input = { version = "0.2.1", path = "crates/lamco-rdp-input" }
 lamco-clipboard-core = { version = "0.6.2", path = "crates/lamco-clipboard-core" }
 lamco-rdp-clipboard = { version = "0.5.1", path = "crates/lamco-rdp-clipboard" }
 
@@ -48,7 +48,7 @@ ironrdp-core = "0.2"
 
 [package]
 name = "lamco-rdp"
-version = "0.8.1"
+version = "0.8.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

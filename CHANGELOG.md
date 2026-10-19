@@ -5,6 +5,16 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-10-19
+
+### Changed
+- **lamco-rdp-input 0.2.1:** a client with several monitors can now point at all
+  of them (the pointer mapping scaled by the primary monitor alone), and a
+  position in a gap of the layout stays on the nearest monitor. Adds
+  `CoordinateTransformer::locate_in_monitor`. See lamco-rdp-input's own changelog.
+- The `lamco-rdp-input` requirement moves to `0.2.1`. The clipboard crates are
+  unaffected and stay at 0.6.2 and 0.5.1.
+
 ## [0.8.1] - 2026-09-30
 
 ### Changed

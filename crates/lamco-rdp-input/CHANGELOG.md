@@ -5,6 +5,24 @@ All notable changes to lamco-rdp-input will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-10-19
+
+### Fixed
+- A client shown several monitors could point only at the first. Client
+  coordinates were normalised by the primary monitor's size but mapped onto the
+  whole virtual desktop, and the stream space was as wide as the widest monitor,
+  so the second monitor's left edge was out of reach and relative movement
+  stopped at the first monitor's edge. The client's coordinate space is now the
+  whole canvas the monitors are laid out on, and so is the stream space. With one
+  monitor nothing changes.
+- A position in a gap of the layout, or past its edge, now stays on the nearest
+  monitor instead of jumping to the primary.
+
+### Added
+- `CoordinateTransformer::locate_in_monitor` names the monitor a stream-space
+  point falls on and the position within it, which is what a compositor takes
+  with a stream id. It returns the new `MonitorPoint`.
+
 ## [0.2.0] - 2026-08-25
 
 ### Added

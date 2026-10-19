@@ -253,7 +253,7 @@ pub mod touch;
 pub mod translator;
 
 // Re-export main types for convenience
-pub use coordinates::{CoordinateTransformer, MonitorInfo};
+pub use coordinates::{CoordinateTransformer, MonitorInfo, MonitorPoint};
 pub use error::{ErrorContext, InputError, RecoveryAction, Result};
 pub use keyboard::{KeyModifiers, KeyboardEvent, KeyboardHandler};
 pub use mapper::{ScancodeMapper, keycodes};
