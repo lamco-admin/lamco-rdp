@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-24
+
+### Changed
+- **Moves to `ironrdp-cliprdr` 0.8 and `ironrdp-core` 0.3** (transitively
+  `ironrdp-pdu` 0.10 and `ironrdp-svc` 0.9), the IronRDP releases of 2026-10-23.
+  No source change. `ironrdp-cliprdr` types appear in this crate's public API
+  (the `CliprdrBackend` impl and the request and response types), so consumers
+  move to 0.8 with it. A consumer that patches `ironrdp-cliprdr` to an IronRDP
+  checkout at 0.8 (lamco-rdp-server does) otherwise pulls a second 0.7 copy from
+  crates.io and the `CliprdrBackend` trait no longer matches.
+- **Minimum supported Rust version is now 1.94**, because `ironrdp-cliprdr` 0.8
+  requires it. The other crates in the workspace stay at 1.89.
+
 ## [0.5.1] - 2026-09-30
 
 ### Added

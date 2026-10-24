@@ -18,7 +18,7 @@ homepage = "https://lamco.ai"
 # Internal crates
 lamco-rdp-input = { version = "0.2.1", path = "crates/lamco-rdp-input" }
 lamco-clipboard-core = { version = "0.6.2", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.5.1", path = "crates/lamco-rdp-clipboard" }
+lamco-rdp-clipboard = { version = "0.6.0", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"
@@ -36,11 +36,13 @@ sha2 = "0.10"
 # Image processing
 image = { version = "0.25", default-features = false }
 
-# IronRDP — published versions on crates.io. ironrdp-cliprdr 0.6.0 carries the
-# signed-lindex FileContentsRequest fix (our PR #1166); ironrdp-core 0.2.0 is
-# the matching common-types release.
-ironrdp-cliprdr = "0.7"
-ironrdp-core = "0.2"
+# IronRDP, published versions on crates.io. ironrdp-cliprdr types appear in
+# lamco-rdp-clipboard's public API, so a consumer that patches ironrdp-cliprdr
+# to a git checkout needs this requirement to match that checkout's version.
+# ironrdp-cliprdr 0.8 needs Rust 1.94, which is why lamco-rdp-clipboard
+# declares its own rust-version.
+ironrdp-cliprdr = "0.8"
+ironrdp-core = "0.3"
 
 # =============================================================================
 # Meta-crate configuration (lamco-rdp)
@@ -48,7 +50,7 @@ ironrdp-core = "0.2"
 
 [package]
 name = "lamco-rdp"
-version = "0.8.2"
+version = "0.9.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
