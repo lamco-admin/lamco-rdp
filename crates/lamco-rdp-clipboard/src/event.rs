@@ -146,12 +146,12 @@ impl ClipboardEvent {
 
     /// Create a FileContentsResponse event
     pub fn file_contents_response(response: &FileContentsResponse<'_>) -> Self {
-        // Note: FileContentsResponse doesn't expose is_error publicly,
-        // so we infer error state from empty data
+        // A successful range request at end of file carries no data, so the
+        // response flag is the only way to tell it from a failure.
         Self::FileContentsResponse {
             stream_id: response.stream_id(),
             data: response.data().to_vec(),
-            is_error: response.data().is_empty(),
+            is_error: response.is_error(),
         }
     }
 
@@ -372,5 +372,32 @@ mod tests {
         let event = receiver.try_recv();
         assert!(matches!(event, Some(ClipboardEvent::Ready)));
         assert!(receiver.try_recv().is_none());
+    }
+
+    #[test]
+    fn empty_file_contents_is_not_an_error() {
+        let empty: &[u8] = &[];
+        let event = ClipboardEvent::file_contents_response(&FileContentsResponse::new_data_response(7, empty));
+        assert!(matches!(
+            event,
+            ClipboardEvent::FileContentsResponse {
+                stream_id: 7,
+                is_error: false,
+                ref data,
+            } if data.is_empty()
+        ));
+    }
+
+    #[test]
+    fn failed_file_contents_is_an_error() {
+        let event = ClipboardEvent::file_contents_response(&FileContentsResponse::new_error(7));
+        assert!(matches!(
+            event,
+            ClipboardEvent::FileContentsResponse {
+                stream_id: 7,
+                is_error: true,
+                ..
+            }
+        ));
     }
 }
