@@ -5,6 +5,19 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-10-24
+
+### Fixed
+- **lamco-rdp-clipboard 0.6.1:** a file contents response with no data, such as a
+  successful read at the end of a file, is no longer reported as an error. See
+  lamco-rdp-clipboard's own changelog.
+
+### Changed
+- Every license file in the workspace names Lamco Development LLC and 2026, the
+  root `LICENSE-APACHE` that this crate ships included, so `lamco-rdp-input` 0.2.2
+  and `lamco-clipboard-core` 0.6.3 are republished with no source change. The
+  requirements on all three move to the new versions.
+
 ## [0.9.0] - 2026-10-24
 
 ### Changed

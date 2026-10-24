@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-24
+
+### Fixed
+- A file contents response with no data was reported as an error. The event
+  took its error flag from the data being empty, so a successful read at the end
+  of a file, which carries no data, failed. `ClipboardEvent::FileContentsResponse`
+  now carries the response's own flag.
+
 ## [0.6.0] - 2026-10-24
 
 ### Changed

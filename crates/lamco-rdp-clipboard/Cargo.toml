@@ -1,6 +1,6 @@
 [package]
 name = "lamco-rdp-clipboard"
-version = "0.6.0"
+version = "0.6.1"
 edition.workspace = true
 # ironrdp-cliprdr 0.8 needs Rust 1.94; the rest of the workspace keeps 1.89.
 rust-version = "1.94"
