@@ -5,6 +5,16 @@ All notable changes to the lamco-rdp workspace will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-10-30
+
+### Changed
+- **lamco-rdp-clipboard 0.7.0:** Moves to `ironrdp-cliprdr` 0.9, the IronRDP release of
+  2026-10-27. No source change; breaking for users of the re-exported clipboard types,
+  which move to `ironrdp-cliprdr` 0.9. Rust 1.94 is still the floor for the
+  `clipboard-rdp` and `full` features. See lamco-rdp-clipboard's own changelog.
+- The `lamco-rdp-clipboard` requirement moves to `0.7.0`. `lamco-rdp-input` and
+  `lamco-clipboard-core` are unaffected and stay at 0.2.2 and 0.6.3.
+
 ## [0.9.1] - 2026-10-24
 
 ### Fixed

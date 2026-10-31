@@ -18,7 +18,7 @@ homepage = "https://lamco.ai"
 # Internal crates
 lamco-rdp-input = { version = "0.2.2", path = "crates/lamco-rdp-input" }
 lamco-clipboard-core = { version = "0.6.3", path = "crates/lamco-clipboard-core" }
-lamco-rdp-clipboard = { version = "0.6.1", path = "crates/lamco-rdp-clipboard" }
+lamco-rdp-clipboard = { version = "0.7.0", path = "crates/lamco-rdp-clipboard" }
 
 # Core dependencies
 thiserror = "2"
@@ -39,9 +39,9 @@ image = { version = "0.25", default-features = false }
 # IronRDP, published versions on crates.io. ironrdp-cliprdr types appear in
 # lamco-rdp-clipboard's public API, so a consumer that patches ironrdp-cliprdr
 # to a git checkout needs this requirement to match that checkout's version.
-# ironrdp-cliprdr 0.8 needs Rust 1.94, which is why lamco-rdp-clipboard
+# ironrdp-cliprdr 0.9 needs Rust 1.94, which is why lamco-rdp-clipboard
 # declares its own rust-version.
-ironrdp-cliprdr = "0.8"
+ironrdp-cliprdr = "0.9"
 ironrdp-core = "0.3"
 
 # =============================================================================
@@ -50,7 +50,7 @@ ironrdp-core = "0.3"
 
 [package]
 name = "lamco-rdp"
-version = "0.9.1"
+version = "0.10.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

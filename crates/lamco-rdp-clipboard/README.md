@@ -34,7 +34,7 @@ This crate provides the IronRDP `CliprdrBackend` implementation for RDP clipboar
 
 ```toml
 [dependencies]
-lamco-rdp-clipboard = "0.6"
+lamco-rdp-clipboard = "0.7"
 ```
 
 ## Usage
